@@ -65,17 +65,74 @@ body:not(.inspect) .in, body.inspect .out { display: none; } /* .out: only while
   .panel { max-width: 30rem; max-height: none; overflow: visible; background: none; margin-inline: 0; padding-inline: 0; }
   #pins { display: block; } .parts { display: none; }
 }
+
+/* ───────── Premium pass: glass card, bottom timeline, ghost year, vignette ───────── */
+.vig { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 55%, rgb(0 0 0 / .62)); }
+#ghost { position: fixed; left: 50%; top: 9vh; margin: 0; transform: translateX(-50%); pointer-events: none; white-space: nowrap; font: 300 clamp(9rem, 30vw, 26rem)/.8 var(--serif); letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 1px rgb(255 255 255 / .09); transition: opacity .6s, transform 1.2s var(--drift); }
+body.inspect #ghost { transform: translateX(-18%); opacity: .6; }
+#ghost.flip { opacity: 0; }
+.top #count { color: var(--ink); letter-spacing: .14em; }
+.top #count b { color: var(--sig); font-weight: 500; }
+
+/* The card */
+.panel { margin: auto 0 0; max-height: 52vh; overflow-y: auto; padding: 1.4rem 1.25rem 1.25rem; background: rgb(14 15 19 / .58); -webkit-backdrop-filter: blur(22px) saturate(1.3); backdrop-filter: blur(22px) saturate(1.3); border: 1px solid rgb(255 255 255 / .09); border-top-color: rgb(255 255 255 / .16); box-shadow: 0 30px 90px rgb(0 0 0 / .55); }
+.panel #kind { color: var(--sig); letter-spacing: .14em; font-size: .6875rem; margin: 0; }
+.panel h1 { font-size: clamp(1.8rem, 4.2vw, 2.7rem); margin: .5rem 0 .9rem; }
+ul.facts { list-style: none; margin: 0 0 1rem; padding: 0; border-top: 1px solid rgb(255 255 255 / .09); }
+ul.facts li { padding: .45rem 0; border-bottom: 1px solid rgb(255 255 255 / .09); color: var(--ink); font-size: .75rem; }
+#detail { min-height: 2.6em; }
+#detail h2 { font-size: 1.25rem; }
+#detail p { font-size: 1rem; color: #cfcbc2; }
+.acts { gap: .5rem; margin-top: 1rem; }
+.acts button, .acts a { border: 1px solid rgb(255 255 255 / .16); background: rgb(255 255 255 / .03); padding: 0 1.05rem; color: var(--ink); transition: background .25s, border-color .25s, color .25s, transform .25s var(--drift); }
+.acts button:hover, .acts a:hover { background: rgb(255 255 255 / .09); border-color: rgb(255 255 255 / .32); color: #fff; transform: translateY(-1px); }
+.acts .main { background: var(--sig); border-color: var(--sig); color: #1a1205; font-weight: 500; }
+.acts .main:hover { background: #ffc66e; border-color: #ffc66e; color: #1a1205; }
+
+/* The timeline, along the bottom edge */
+.ui { padding-bottom: 86px; }
+.picker { position: fixed; left: 0; right: 0; bottom: 0; height: 74px; display: flex; align-items: stretch; gap: 2.2rem; padding: 0 16px; overflow-x: auto; scrollbar-width: none; pointer-events: auto; background: linear-gradient(transparent, rgb(8 9 10 / .9) 45%); }
+.picker::-webkit-scrollbar { display: none; }
+.picker .row { flex: none; overflow: visible; margin: 0; padding: 0; gap: 0; align-items: flex-end; }
+.picker .world { position: static; width: auto; background: none; align-self: flex-end; padding: 0 1rem 21px 0; color: var(--dim); font-size: .625rem; letter-spacing: .2em; }
+.picker button { width: 4.6rem; height: 74px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 9px; padding-bottom: 14px; border-top: 0; color: var(--dim); }
+.picker button::before { position: static; margin: 0; order: 1; width: 7px; height: 7px; transition: transform .4s var(--drift), background .3s, box-shadow .3s; }
+.picker button::after { content: ""; position: absolute; left: 0; right: 0; bottom: 47px; height: 1px; background: rgb(255 255 255 / .14); } /* the line the dots sit on */
+.picker button small { order: 2; font-size: .6875rem; letter-spacing: .08em; color: inherit; opacity: 1; }
+.picker button span { position: absolute; bottom: 58px; left: 50%; transform: translate(-50%, 4px); white-space: nowrap; font-size: .625rem; letter-spacing: .1em; color: var(--ink); background: rgb(14 15 19 / .9); padding: .25rem .5rem; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; }
+.picker button:hover span, .picker button:focus-visible span { opacity: 1; transform: translate(-50%, 0); }
+.picker button:hover { color: var(--ink); }
+.picker button[aria-pressed="true"] { color: var(--sig); }
+.picker button[aria-pressed="true"]::before { transform: scale(1.5); }
+
+.nav { top: 44%; width: 48px; height: 48px; margin-top: -24px; border-radius: 50%; border: 1px solid rgb(255 255 255 / .16); background: rgb(14 15 19 / .5); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: 1.3rem; line-height: 1; color: var(--ink); transition: background .25s, border-color .25s, transform .25s var(--drift); }
+.nav:hover { background: var(--sig); border-color: var(--sig); color: #1a1205; transform: scale(1.06); }
+#prevM { left: 12px; } #nextM { right: 12px; }
+.pin { border-color: rgb(255 255 255 / .2); background: rgb(14 15 19 / .7); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); padding: .34rem .7rem .34rem 1.25rem; }
+@media (min-width: 60rem) {
+  .ui { padding: 0 48px 104px; }
+  .panel { max-width: 25rem; max-height: none; overflow: visible; margin: auto 0 0; padding: 1.6rem 1.6rem 1.5rem; background: rgb(14 15 19 / .58); }
+  .picker { padding: 0 48px; justify-content: center; }
+  #prevM { left: 24px; } #nextM { right: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { #ghost, .acts button, .acts a, .nav, .picker button::before { transition: none; } }
+#detail p.mono { font-size: .6875rem; color: var(--dim); }
+.acts button, .acts a { font-size: .6875rem; padding: 0 .85rem; }
+@media (max-width: 59.99rem) { ul.facts { display: none; } .panel { max-height: 40vh; padding: 1rem 1rem .9rem; } .panel h1 { margin: .35rem 0 .5rem; } .nav { top: 30%; } }
+@media (min-width: 60rem) { #prevM { left: auto; right: 84px; } .nav { top: auto; bottom: 118px; margin: 0; } }
 </style>
 </head>
 <body data-world="moon">
 <div class="stars" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="tint mars" aria-hidden="true"></div><div class="tint moon" aria-hidden="true"></div>
+<p id="ghost" aria-hidden="true"></p>
 <canvas id="view" tabindex="0" role="img" aria-label="A line of ten machines in 3D, in order of year. Left and right arrows walk the line, Enter steps up to a machine, Escape steps back."></canvas>
 <div id="pins"></div>
+<div class="vig" aria-hidden="true"></div>
 
 <div class="ui">
   <header class="top">
-    <p class="mono">Hardware bay</p>
+    <p class="mono">Hardware bay &nbsp;·&nbsp; <span id="count"></span></p>
     <div class="tools">
       <a class="mono" href="index.html">◂ Listening station</a>
       <a class="mono" href="film.html">▸ Watch the film</a>
@@ -86,7 +143,7 @@ body:not(.inspect) .in, body.inspect .out { display: none; } /* .out: only while
   <main class="panel">
     <p class="mono" id="kind"></p>
     <h1 id="name"></h1>
-    <p class="facts mono" id="facts"></p>
+    <ul class="facts mono" id="facts"></ul>
     <div id="detail" role="status"></div>
     <div class="acts out">
       <button class="mono main" id="enter">Step closer ▸</button>
@@ -169,6 +226,7 @@ flat(new THREE.PlaneGeometry(END + 60, 60), new THREE.ShadowMaterial({ opacity: 
 flat(new THREE.PlaneGeometry(END + 6, 0.02), new THREE.MeshBasicMaterial({ color: 0x8a6a35 }), END / 2, 0.005, 1.75); // the timeline itself
 for (const [text, it] of [['MOON', items[0]], ['MARS', items.find(t => t.mars)]]) flat(new THREE.PlaneGeometry(9, 2.2), new THREE.MeshBasicMaterial({ map: label(text, 1024, 256, '300 210px Newsreader, Georgia, serif', '#3a3b40'), transparent: true, depthWrite: false }), it.x + 2.6, 0.003, -2.9);
 
+const halo = flat(new THREE.RingGeometry(1.98, 2.02, 96), new THREE.MeshBasicMaterial({ color: 0xffb84d, transparent: true, opacity: 0.7 }), 0, 0.007, 0); // marks where you are standing
 let cur = 0, mode = 'line', k = 0, camX = 0, camXT = 0;              // k: 0 on the line … 1 inspecting (eased)
 let selected = null, hovered = null, quest = null, score = 0, showSize = false;
 let dist = 3.7, yaw = 0.6, pitch = 0.16, zf = 1;
@@ -227,7 +285,10 @@ function fill() {
   const t = it(), def = t.def;
   document.body.dataset.world = t.mars ? 'mars' : 'moon';
   $('#kind').textContent = `${def.year} · ${def.kind} · ${def.world}${def.glb ? ' · NASA model' : ' · simplified model'}`;
-  $('#name').textContent = def.name; $('#facts').textContent = def.facts.join(' · ');
+  $('#name').textContent = def.name; $('#facts').replaceChildren(...def.facts.map(f => Object.assign(document.createElement('li'), { textContent: f })));
+  $('#count').innerHTML = `<b>${String(cur + 1).padStart(2, '0')}</b> / ${items.length}`;
+  if (fill.last !== t) { fill.last = t; const g = $('#ghost'); g.classList.add('flip'); setTimeout(() => { g.textContent = def.year; g.classList.remove('flip'); }, reduce ? 0 : 260); // the year turns over
+    if (!reduce) $('.panel').animate([{ opacity: 0.2, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 600, easing: 'cubic-bezier(.2,.6,.2,1)' }); }
   $('#story').hidden = !def.signal; if (def.signal) $('#story').href = 'index.html#' + def.signal;
   $('#size').hidden = !t.mPerUnit;
   document.querySelectorAll('.picker button').forEach(b => { const on = b.dataset.id === def.id; b.setAttribute('aria-pressed', on); if (on) b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduce ? 'auto' : 'smooth' }); });
@@ -240,7 +301,7 @@ function fill() {
 function hint() {
   const t = it();
   say(t.state === 'failed' ? '<p>NASA’s model could not be loaded. Check the connection and reload.</p>' : t.state !== 'ready' ? '<p class="mono">Loading NASA’s model…</p>'
-    : mode === 'line' ? `<p class="mono">${cur + 1} of ${items.length} · drag, scroll or use the arrows to walk the line</p>` : t.eT ? '<p>Now pick any part.</p>' : '<p>Tap the machine to take it apart.</p>');
+    : mode === 'line' ? '<p class="mono">Drag, scroll or use the arrows to walk the line</p>' : t.eT ? '<p>Now pick any part.</p>' : '<p>Tap the machine to take it apart.</p>');
 }
 function sync() {
   const t = it();
@@ -347,7 +408,7 @@ addEventListener('keydown', ev => {
 for (const world of ['Moon', 'Mars']) {
   const row = document.createElement('div'); row.className = 'row'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', world);
   row.append(Object.assign(document.createElement('span'), { className: 'mono world', textContent: world }), ...items.filter(t => t.def.world.startsWith(world)).map(t => {
-    const b = document.createElement('button'); b.className = 'mono'; b.dataset.id = t.def.id; b.innerHTML = `<small>${t.def.year}</small> ${t.def.name}`; b.onclick = () => go(t.i); return b;
+    const b = document.createElement('button'); b.className = 'mono'; b.dataset.id = t.def.id; b.innerHTML = `<small>${t.def.year}</small><span>${t.def.name}</span>`; b.setAttribute('aria-label', `${t.def.year}, ${t.def.name}`); b.onclick = () => go(t.i); return b;
   }));
   $('.picker').append(row);
 }
@@ -375,7 +436,8 @@ if (R) (function loop() {
   const D = dist * (1 + Math.min(t.e, 1) * 0.45) * zf, back = wide ? 7.2 : 9.5;
   tmp.set(camX, 1.5, back).lerp(tmp2.set(focus.x + Math.sin(yaw) * Math.cos(pitch) * D, focus.y + Math.sin(pitch) * D, focus.z + Math.cos(yaw) * Math.cos(pitch) * D), k); cam.position.copy(tmp);
   tmp.set(camX, 0.95, 0).lerp(focus, k); cam.lookAt(tmp);
-  wide ? cam.setViewOffset(W, H, -W * 0.15 * k, -H * 0.06 * (1 - k), W, H) : cam.setViewOffset(W, H, 0, H * 0.17, W, H); cam.updateProjectionMatrix(); // keep the model clear of the text
+  wide ? cam.setViewOffset(W, H, -W * 0.15 * k, -H * 0.06 * (1 - k), W, H) : cam.setViewOffset(W, H, 0, H * 0.2, W, H); cam.updateProjectionMatrix(); // keep the model clear of the text
+  halo.position.x += (t.x - halo.position.x) * ease; halo.material.opacity = 0.7 * (1 - Math.min(1, t.e));
   key.position.set(tmp.x + 4, 6, 5); key.target.position.set(tmp.x, 0, 0);
   R.render(scene, cam);
   // labels follow their parts
