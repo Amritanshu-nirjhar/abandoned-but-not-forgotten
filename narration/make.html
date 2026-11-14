@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Narration maker</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 16px; background: #0b0d12; color: #e8e6df; }
+  button, select { font: inherit; padding: .5rem 1rem; }
+  li { margin: .8rem 0; } audio { display: block; margin-top: .3rem; width: 100%; height: 32px; }
+  a { color: #ffb347; }
+</style>
+<h1>Narration maker</h1>
+<p>Reads the film's script aloud with a neural voice (Kokoro, Apache-2.0) that runs in this browser tab. Nothing is installed.
+  The first run downloads the voice model (about 90 MB). Serve the project over http (for example <code>python3 -m http.server</code>) and open this page from there.</p>
+<p>
+  <label>Voice <select id="voice">
+    <option value="af_heart">Heart (US, warm)</option><option value="af_bella">Bella (US, bright)</option>
+    <option value="bf_emma">Emma (British)</option><option value="am_fenrir">Fenrir (US, male)</option><option value="bm_george">George (British, male)</option>
+  </select></label>
+  <button id="go">Generate</button> <span id="status" role="status"></span>
+</p>
+<p>Listen first. When you like it, press <button id="saveall" hidden>Save all into a folder…</button> and choose this project's <code>narration</code> folder
+  (or use the per-line links). The film plays <code>01.wav</code>, <code>02.wav</code>, … automatically.</p>
+<ol id="out"></ol>
+<script type="module">
+  import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm';
+  const $ = id => document.getElementById(id);
+  const q = new URLSearchParams(location.search);
+  if (q.get('voice')) $('voice').value = q.get('voice');
+  // The script lives in film.html, so the film and its narration cannot drift apart.
+  const doc = new DOMParser().parseFromString(await (await fetch('../film.html')).text(), 'text/html');
+  const lines = [...doc.querySelectorAll('#script li')].map(li => li.textContent.trim());
+  $('out').innerHTML = lines.map(l => `<li>${l}</li>`).join('');
+  window.wavs = [];
+  $('go').onclick = async () => {
+    $('go').disabled = true; $('status').textContent = 'Loading the voice…';
+    try {
+      const tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', { dtype: 'q8', device: 'wasm' });
+      for (let i = 0; i < lines.length; i++) {
+        $('status').textContent = `Reading line ${i + 1} of ${lines.length}…`;
+        const blob = (await tts.generate(lines[i], { voice: $('voice').value, speed: +q.get('speed') || 0.95 })).toBlob();
+        const url = URL.createObjectURL(blob), name = String(i + 1).padStart(2, '0') + '.wav';
+        $('out').children[i].insertAdjacentHTML('beforeend', `<audio controls src="${url}"></audio><a download="${name}" href="${url}">Save ${name}</a>`);
+        window.wavs.push(blob);
+      }
+      $('status').textContent = 'Done.';
+      if (window.showDirectoryPicker) $('saveall').hidden = false;
+    } catch (e) { $('status').textContent = 'Failed: ' + e.message; }
+    $('go').disabled = false;
+  };
+  // Chrome and Edge only: write every clip straight into a folder the user picks (the narration folder).
+  $('saveall').onclick = async () => {
+    const dir = await showDirectoryPicker({ mode: 'readwrite' });
+    for (let i = 0; i < wavs.length; i++) { const w = await (await dir.getFileHandle(String(i + 1).padStart(2, '0') + '.wav', { create: true })).createWritable(); await w.write(wavs[i]); await w.close(); }
+    $('status').textContent = `Saved ${wavs.length} clips.`;
+  };
+</script>
