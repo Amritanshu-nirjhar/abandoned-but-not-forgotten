@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#08090a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
 html, body { height: 100%; overflow: hidden; }
@@ -69,7 +69,7 @@ body:not(.inspect) .in, body.inspect .out { display: none; } /* .out: only while
 /* ───────── Premium pass: glass card, bottom timeline, ghost year, vignette ───────── */
 .vig { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 55%, rgb(0 0 0 / .62)); }
 /* The year behind the machine: solid, lit from above and fading into the horizon; kept right of the card and below the header. */
-#ghost { position: fixed; right: 4vw; top: 8vh; margin: 0; padding: .12em .04em 0 0; pointer-events: none; white-space: nowrap; font: 500 clamp(8rem, 26vw, 24rem)/1 var(--serif); letter-spacing: -.05em; font-variant-numeric: lining-nums tabular-nums; color: transparent; background: linear-gradient(180deg, rgb(255 236 200 / .26), rgb(255 255 255 / .07) 55%, rgb(255 255 255 / 0) 92%); -webkit-background-clip: text; background-clip: text; transition: opacity .5s, transform .9s var(--drift); }
+#ghost { position: fixed; right: 4vw; top: 8vh; margin: 0; padding: .12em .04em 0 0; pointer-events: none; white-space: nowrap; font: 300 clamp(8rem, 25vw, 23rem)/1 var(--serif); letter-spacing: .05em; font-variant-numeric: lining-nums tabular-nums; color: transparent; background: linear-gradient(180deg, rgb(255 236 200 / .26), rgb(255 255 255 / .07) 55%, rgb(255 255 255 / 0) 92%); -webkit-background-clip: text; background-clip: text; transition: opacity .5s, transform .9s var(--drift); }
 body.inspect #ghost { opacity: .55; }
 #ghost.flip { opacity: 0; transform: translateY(.1em); }
 .top #count { color: var(--ink); letter-spacing: .14em; }
@@ -218,7 +218,7 @@ const items = order.map((def, i) => {
   const it = { def, i, x, mars, orbit, wrap, lift: orbit ? 0.75 : 0, h: 1.4, e: 0, eT: 0, lastE: -1, parts: {}, meshes: [], state: 'idle', mPerUnit: 0 };
   if (!orbit) flat(new THREE.CircleGeometry(1.9, 48), new THREE.MeshStandardMaterial({ map: SOIL[mars ? 'Mars' : 'Moon'], roughness: 1, envMapIntensity: 0.25, transparent: true, alphaMap: edge, depthWrite: false }), x, 0.004, 0).receiveShadow = true;
   else flat(new THREE.RingGeometry(1.25, 1.28, 64), new THREE.MeshBasicMaterial({ color: 0x8a6a35 }), x, 0.004, 0); // orbiters hover over a ring, not soil
-  flat(new THREE.PlaneGeometry(1.7, 0.6), new THREE.MeshBasicMaterial({ map: label(def.year, 256, 90, '500 64px "IBM Plex Mono", ui-monospace, monospace', '#ffb84d'), transparent: true, depthWrite: false }), x, 0.006, 2.35);
+  flat(new THREE.PlaneGeometry(1.7, 0.6), new THREE.MeshBasicMaterial({ map: label(def.year, 256, 90, '500 64px "DM Mono", ui-monospace, monospace', '#ffb84d'), transparent: true, depthWrite: false }), x, 0.006, 2.35);
   flat(new THREE.PlaneGeometry(0.03, 0.5), new THREE.MeshBasicMaterial({ color: 0xffb84d }), x, 0.006, 1.75);
   it.ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.012, 8, 48), new THREE.MeshBasicMaterial({ color: 0xffb84d, transparent: true, opacity: 0.5 })); it.ring.position.set(x, 0.9, 0); it.ring.visible = false; scene.add(it.ring); // "loading"
   it.child = new THREE.Sprite(new THREE.SpriteMaterial({ map: childTex, transparent: true, depthWrite: false })); it.child.center.set(0.5, 0); it.child.visible = false; wrap.add(it.child);

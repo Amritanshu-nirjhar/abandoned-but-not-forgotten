@@ -7,8 +7,8 @@
   --rule: #24231f;
   --life: 1;
   --sig: hsl(36 calc(12% + var(--life) * 78%) 64%);
-  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --serif: "Newsreader", Georgia, serif;
+  --mono: "DM Mono", ui-monospace, Menlo, monospace;
+  --serif: "Fraunces", Georgia, serif;
   --drift: cubic-bezier(.2, .6, .2, 1);
 }
 * { box-sizing: border-box; }
@@ -131,6 +131,7 @@ h1 {
 #chapters { display: flex; gap: 2px; padding: 0 22px; margin-top: 4px; }
 #chapters span { flex-basis: 0; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-top: 1px solid var(--dim); padding-top: 3px; font-size: .5625rem; letter-spacing: .06em; }
 #chapters span:last-child { flex-grow: 2 !important; text-align: right; border-color: hsl(36 90% 64%); color: hsl(36 90% 64%); overflow: visible; direction: rtl; }
+#chapters span:nth-last-child(2) { padding-right: max(0px, 9.5em - 6.4vw); } /* the last label overhangs to the left on narrow screens: make room so the two never overlap */
 #rx .links { display: flex; flex-wrap: wrap; gap: .25rem 1.5rem; margin: 1rem 0 0; }
 #rx .links a { min-height: 44px; display: inline-flex; align-items: center; color: var(--ink); }
 
