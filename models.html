@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D models · Abandoned but Not Forgotten</title>
+<meta name="description" content="Walk a timeline of the machines left on the Moon and Mars, step up to any of them, take it apart, and find out what every part did.">
+<meta name="theme-color" content="#08090a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+html, body { height: 100%; overflow: hidden; }
+body { max-width: none; padding: 0; }
+/* The room takes the colour of the world you are standing in */
+.tint { position: fixed; inset: 0; pointer-events: none; transition: opacity 1.4s; opacity: 0; }
+.tint.mars { background: radial-gradient(ellipse 100% 55% at 50% 0%, rgb(190 92 44 / .3), transparent 70%); }
+.tint.moon { background: radial-gradient(ellipse 100% 55% at 50% 0%, rgb(150 165 200 / .16), transparent 70%); }
+body[data-world="mars"] .tint.mars, body[data-world="moon"] .tint.moon { opacity: 1; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; outline-offset: -4px; }
+#view:active { cursor: grabbing; }
+.ui { position: fixed; inset: 0; display: flex; flex-direction: column; padding: 0 16px 12px; pointer-events: none; }
+.ui a, .ui button, .ui .panel { pointer-events: auto; }
+
+/* Index of the line: two rows, a dot per machine */
+.picker .row { position: relative; display: flex; align-items: center; gap: 0 1.4rem; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+.picker .row::-webkit-scrollbar { display: none; }
+.picker .world { flex: none; width: 3.6rem; color: var(--ink); position: sticky; left: 0; z-index: 1; background: var(--bg); align-self: stretch; display: flex; align-items: center; }
+.picker button { flex: none; padding: 0 0 0 14px; position: relative; }
+.picker button::before { content: ""; position: absolute; left: 0; top: 50%; width: 7px; height: 7px; margin-top: -4px; border-radius: 50%; border: 1px solid var(--dim); }
+.picker button small { color: var(--sig); opacity: .8; }
+.picker button[aria-pressed="true"] { color: var(--sig); }
+.picker button[aria-pressed="true"]::before { background: var(--sig); border-color: var(--sig); box-shadow: 0 0 0 4px rgb(255 184 77 / .2); }
+
+.panel { margin-top: auto; max-height: 46vh; overflow-y: auto; padding-top: 2.5rem; margin-inline: -16px; padding-inline: 16px; background: linear-gradient(transparent, rgb(8 9 10 / .88) 2.5rem); }
+.panel h1 { font: 300 clamp(1.9rem, 5vw, 3.4rem)/1 var(--serif); letter-spacing: -.03em; margin: .2rem 0 .4rem; }
+.facts { margin: 0 0 .8rem; text-transform: none; letter-spacing: .02em; }
+#detail { min-height: 3.2em; max-width: 30em; }
+#detail h2 { font: 400 1.3rem/1.2 var(--serif); color: var(--sig); margin: 0 0 .3rem; }
+#detail p { margin: 0; font-size: 1.05rem; line-height: 1.45; }
+.acts { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+.acts button, .acts a { border: 1px solid var(--rule); padding: 0 .9rem; min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; background: rgb(8 9 10 / .6); }
+.acts .main { border-color: var(--sig); color: var(--sig); }
+.acts [aria-pressed="true"] { background: var(--sig); border-color: var(--sig); color: #1a1205; }
+body:not(.inspect) .in, body.inspect .out { display: none; } /* .out: only while walking the line · .in: only while inspecting */
+.parts { list-style: none; display: flex; flex-wrap: wrap; gap: 0 1rem; margin: .6rem 0 0; padding: 0; }
+.parts button { padding: 0; font: 300 .95rem/1 var(--serif); color: var(--dim); text-decoration: underline; text-underline-offset: .25em; text-decoration-color: var(--rule); }
+.parts button[aria-pressed="true"] { color: var(--sig); }
+
+#pins { position: fixed; inset: 0; pointer-events: none; display: none; }
+.pin { position: absolute; left: 0; top: 0; min-height: 0; padding: .28rem .55rem .28rem 1.1rem; white-space: nowrap; font: 400 .6875rem/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); background: rgb(8 9 10 / .72); border: 1px solid rgb(255 255 255 / .16); will-change: transform; transition: opacity .3s, background .2s; }
+.pin::before { content: ""; position: absolute; left: .4rem; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--sig); }
+.pin:hover, .pin.on { background: var(--sig); color: #1a1205; border-color: var(--sig); }
+.pin:hover::before, .pin.on::before { background: #1a1205; }
+.nav { position: fixed; top: 46%; width: 48px; height: 72px; margin-top: -36px; font-size: 2rem; color: var(--dim); }
+.nav:hover { color: var(--sig); }
+#prevM { left: 2px; } #nextM { right: 2px; }
+#tip { position: fixed; left: 0; top: 0; margin: 0; padding: .3rem .6rem; background: rgb(8 9 10 / .85); color: var(--sig); pointer-events: none; opacity: 0; white-space: nowrap; }
+#toast { position: fixed; left: 50%; top: 24%; transform: translateX(-50%); margin: 0; font: 300 clamp(1.3rem, 4vw, 2rem)/1.1 var(--serif); text-align: center; pointer-events: none; opacity: 0; transition: opacity .5s; text-shadow: 0 2px 20px #000; }
+#toast.on { opacity: 1; }
+@media (min-width: 60rem) {
+  .ui { padding: 0 48px 36px; }
+  .picker .row { margin: 0; padding: 0; }
+  .panel { max-width: 30rem; max-height: none; overflow: visible; background: none; margin-inline: 0; padding-inline: 0; }
+  #pins { display: block; } .parts { display: none; }
+}
+</style>
+</head>
+<body data-world="moon">
+<div class="stars" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="tint mars" aria-hidden="true"></div><div class="tint moon" aria-hidden="true"></div>
+<canvas id="view" tabindex="0" role="img" aria-label="A line of ten machines in 3D, in order of year. Left and right arrows walk the line, Enter steps up to a machine, Escape steps back."></canvas>
+<div id="pins"></div>
+
+<div class="ui">
+  <header class="top">
+    <p class="mono">Hardware bay</p>
+    <div class="tools">
+      <a class="mono" href="index.html">◂ Listening station</a>
+      <a class="mono" href="film.html">▸ Watch the film</a>
+    </div>
+  </header>
+  <nav class="picker" aria-label="Jump to a machine, by world and year"></nav>
+
+  <main class="panel">
+    <p class="mono" id="kind"></p>
+    <h1 id="name"></h1>
+    <p class="facts mono" id="facts"></p>
+    <div id="detail" role="status"></div>
+    <div class="acts out">
+      <button class="mono main" id="enter">Step closer ▸</button>
+      <a class="mono" id="story" href="index.html">Its story ▸</a>
+    </div>
+    <div class="acts in">
+      <button class="mono" id="back">◂ Back to the line</button>
+      <button class="mono main" id="apart">Take it apart</button>
+      <button class="mono" id="size" aria-pressed="false">How big is it?</button>
+      <button class="mono" id="game">Play: find the part</button>
+    </div>
+    <ul class="parts in" id="parts" aria-label="Parts"></ul>
+  </main>
+</div>
+<button class="nav" id="prevM" aria-label="Earlier machine">‹</button>
+<button class="nav" id="nextM" aria-label="Later machine">›</button>
+<p class="mono" id="tip" aria-hidden="true"></p>
+<p id="toast" aria-hidden="true"></p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="models.js"></script>
+<script>
+// The hardware bay: a walk-through timeline. Two states:
+//   line     the camera slides along a row of machines (Moon wing, then Mars wing), oldest first
+//   inspect  the camera orbits one machine; it can be taken apart, measured, and quizzed
+const $ = s => document.querySelector(s), V3 = THREE.Vector3;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const canvas = $('#view');
+let R;
+try { R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); } catch (e) {}
+
+// How big each machine really is: ['y', metres tall] or ['w', metres wide]. Used for the child-for-scale.
+const SIZE = { perseverance: ['y', 2.2], ingenuity: ['y', 0.49], opportunity: ['y', 1.5], insight: ['w', 6], 'lm-descent': ['y', 7], 'mars-polar-lander': ['w', 3.6], lrrr: ['w', 0.7], 's-ivb': ['y', 17.8] };
+const CHILD = 1.4, GAP = 4.4, WING = 3.2; // metres (a ten-year-old) · spacing along the line · extra gap between the wings
+
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(36, 1, 0.05, 200);
+scene.fog = new THREE.Fog(0x08090a, 9, 24); // machines further down the line sink into the dark
+scene.add(new THREE.HemisphereLight(0xffffff, 0x1a1c24, 0.35));
+const key = new THREE.DirectionalLight(0xfff4e6, 1.5); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0008; key.shadow.normalBias = 0.02;
+Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 24 }); scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0x8fb4ff, 0.8); rim.position.set(-5, 2, -6); scene.add(rim);
+if (R) { R.outputEncoding = THREE.sRGBEncoding; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.1; R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; scene.environment = ENV(R, '#5a6480', '#0b0c10'); }
+
+const canvasTex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+const dirt = (base, grains, craters) => canvasTex(512, 512, (g, w) => {
+  g.fillStyle = base; g.fillRect(0, 0, w, w);
+  for (let i = 0; i < 9000; i++) { g.fillStyle = grains[i % grains.length]; g.fillRect(Math.random() * w, Math.random() * w, 1 + Math.random() * 2, 1 + Math.random() * 2); }
+  for (let i = 0; i < craters; i++) { const r = 4 + Math.random() * 22, x = Math.random() * w, y = Math.random() * w, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(0,0,0,.35)'); gr.addColorStop(0.7, 'rgba(0,0,0,.3)'); gr.addColorStop(0.86, 'rgba(255,255,255,.3)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+});
+const SOIL = { Moon: dirt('#8f8d87', ['#a3a19a', '#7d7b76', '#b0aea6'], 26), Mars: dirt('#8a5236', ['#9a6040', '#7a452c', '#4a2c20'], 5) };
+const edge = canvasTex(256, 256, g => { const r = g.createRadialGradient(128, 128, 30, 128, 128, 128); r.addColorStop(0, '#fff'); r.addColorStop(0.45, '#fff'); r.addColorStop(1, '#000'); g.fillStyle = r; g.fillRect(0, 0, 256, 256); });
+const label = (text, w, h, font, color) => canvasTex(w, h, g => { g.font = font; g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w / 2, h / 2); });
+const flat = (geo, m, x, y, z) => { const p = new THREE.Mesh(geo, m); p.rotation.x = -Math.PI / 2; p.position.set(x, y, z); scene.add(p); return p; };
+const childTex = canvasTex(128, 256, g => {
+  g.fillStyle = '#ffb84d'; g.strokeStyle = '#ffb84d'; g.lineCap = 'round'; g.lineWidth = 20;
+  g.beginPath(); g.arc(64, 34, 26, 0, 7); g.fill(); g.fillRect(40, 66, 48, 92);
+  for (const [a, b, c, d] of [[44, 78, 22, 140], [84, 78, 106, 140], [52, 156, 48, 244], [76, 156, 80, 244]]) { g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); }
+});
+
+// ── Lay out the line ──
+const order = [...MODELS.filter(m => m.world.startsWith('Moon')), ...MODELS.filter(m => m.world.startsWith('Mars'))];
+const items = order.map((def, i) => {
+  const mars = def.world.startsWith('Mars'), orbit = /orbit/.test(def.world), x = i * GAP + (mars ? WING : 0);
+  if (!def.parts.other) def.parts.other = ['Structure', 'The frame, brackets and wiring that hold everything else together.'];
+  const wrap = new THREE.Group(); wrap.position.x = x; scene.add(wrap);
+  const it = { def, i, x, mars, orbit, wrap, lift: orbit ? 0.75 : 0, h: 1.4, e: 0, eT: 0, lastE: -1, parts: {}, meshes: [], state: 'idle', mPerUnit: 0 };
+  if (!orbit) flat(new THREE.CircleGeometry(1.9, 48), new THREE.MeshStandardMaterial({ map: SOIL[mars ? 'Mars' : 'Moon'], roughness: 1, envMapIntensity: 0.25, transparent: true, alphaMap: edge, depthWrite: false }), x, 0.004, 0).receiveShadow = true;
+  else flat(new THREE.RingGeometry(1.25, 1.28, 64), new THREE.MeshBasicMaterial({ color: 0x8a6a35 }), x, 0.004, 0); // orbiters hover over a ring, not soil
+  flat(new THREE.PlaneGeometry(1.7, 0.6), new THREE.MeshBasicMaterial({ map: label(def.year, 256, 90, '500 64px "IBM Plex Mono", ui-monospace, monospace', '#ffb84d'), transparent: true, depthWrite: false }), x, 0.006, 2.35);
+  flat(new THREE.PlaneGeometry(0.03, 0.5), new THREE.MeshBasicMaterial({ color: 0xffb84d }), x, 0.006, 1.75);
+  it.ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.012, 8, 48), new THREE.MeshBasicMaterial({ color: 0xffb84d, transparent: true, opacity: 0.5 })); it.ring.position.set(x, 0.9, 0); it.ring.visible = false; scene.add(it.ring); // "loading"
+  it.child = new THREE.Sprite(new THREE.SpriteMaterial({ map: childTex, transparent: true, depthWrite: false })); it.child.center.set(0.5, 0); it.child.visible = false; wrap.add(it.child);
+  return it;
+});
+const END = items[items.length - 1].x;
+flat(new THREE.PlaneGeometry(END + 60, 60), new THREE.MeshBasicMaterial({ color: 0x0b0c0f }), END / 2, 0, 0); // an unlit dark floor…
+flat(new THREE.PlaneGeometry(END + 60, 60), new THREE.ShadowMaterial({ opacity: 0.55 }), END / 2, 0.002, 0).receiveShadow = true; // …with the shadows laid over it
+flat(new THREE.PlaneGeometry(END + 6, 0.02), new THREE.MeshBasicMaterial({ color: 0x8a6a35 }), END / 2, 0.005, 1.75); // the timeline itself
+for (const [text, it] of [['MOON', items[0]], ['MARS', items.find(t => t.mars)]]) flat(new THREE.PlaneGeometry(9, 2.2), new THREE.MeshBasicMaterial({ map: label(text, 1024, 256, '300 210px Newsreader, Georgia, serif', '#3a3b40'), transparent: true, depthWrite: false }), it.x + 2.6, 0.003, -2.9);
+
+let cur = 0, mode = 'line', k = 0, camX = 0, camXT = 0;              // k: 0 on the line … 1 inspecting (eased)
+let selected = null, hovered = null, quest = null, score = 0, showSize = false;
+let dist = 3.7, yaw = 0.6, pitch = 0.16, zf = 1;
+const focus = new V3(), focusT = new V3(), AMBER = new THREE.Color(0xffa733), tmp = new V3(), tmp2 = new V3();
+const it = () => items[cur];
+const eachMat = (m, f) => (Array.isArray(m.material) ? m.material : [m.material]).forEach(f);
+const light = (key, lvl) => it().parts[key] && it().parts[key].meshes.forEach(m => eachMat(m, x => { if (x.emissive) { x.emissive.copy(lvl ? AMBER : x.userData.em0); x.emissiveIntensity = lvl || x.userData.ei0; } }));
+const say = html => { $('#detail').innerHTML = html; };
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1600); }
+// A part's centre right now, in world space (the machine may be turned on its spot)
+const where = (t, p, out) => out.copy(p.c0).addScaledVector(p.d0, t.e * (p.key === selected && t === it() ? 1.3 : 1)).setY(out.y + t.h / 2 + t.lift).applyMatrix4(t.wrap.matrixWorld);
+
+// ── Loading: only the machines near you. Sort each one's meshes into named parts and work out how they fly apart. ──
+function mount(t, obj) {
+  const holder = new THREE.Group(); t.wrap.add(holder); holder.add(obj); t.wrap.rotation.y = 0; scene.updateMatrixWorld(true);
+  const all = new THREE.Box3().setFromObject(obj), c = all.getCenter(new V3()), size = all.getSize(new V3()), r = size.length() / 2, def = t.def;
+  obj.traverse(o => {
+    if (!o.isMesh) return;
+    o.castShadow = true; o.material = Array.isArray(o.material) ? o.material.map(m => m.clone()) : o.material.clone();
+    eachMat(o, x => { x.userData.op0 = x.opacity; x.userData.tr0 = x.transparent; if (x.emissive) { x.userData.em0 = x.emissive.clone(); x.userData.ei0 = x.emissiveIntensity; } });
+    const names = []; let key = null;
+    for (let p = o; p && p !== holder; p = p.parent) { names.push(p.name || ''); if (!key && p.userData.part) key = p.userData.part; }
+    const box = new THREE.Box3().setFromObject(o), chain = names.join('|');
+    if (!key && def.rules) for (const [test, kk] of def.rules) if (typeof test === 'function' ? test(chain, box.getCenter(new V3())) : test.test(chain)) { key = kk; break; }
+    if (!def.parts[key]) key = 'other';
+    (t.parts[key] = t.parts[key] || { key, meshes: [], box: new THREE.Box3() }).meshes.push(o); t.parts[key].box.union(box);
+    o.userData.key = key; o.userData.item = t; o.userData.base = o.position.clone(); t.meshes.push(o);
+  });
+  const zero = new V3();
+  for (const p of Object.values(t.parts)) {
+    const centre = p.box.getCenter(new V3()), d = centre.clone().sub(c); if (d.length() < r * 0.04) d.set(0, 1, 0);
+    d.normalize().multiplyScalar(r * 0.6); if (d.y < 0) d.y *= 0.25; // nothing sinks far into the floor
+    p.c0 = centre.sub(c).divideScalar(r); p.d0 = d.clone().divideScalar(r);
+    for (const m of p.meshes) {
+      let nested = false; for (let q = m.parent; q && q !== holder; q = q.parent) if (q.isMesh) nested = true; // a mesh inside a moving mesh rides along
+      if (nested) { m.userData.unit = new V3(); continue; }
+      const inv = new THREE.Matrix4().copy(m.parent.matrixWorld).invert(); m.userData.unit = d.clone().applyMatrix4(inv).sub(zero.clone().applyMatrix4(inv));
+    }
+  }
+  t.h = size.y / r; holder.scale.setScalar(1 / r); // every machine is shown the same size; the child figure tells the truth
+  holder.position.set((t.x - c.x) / r, -c.y / r + t.h / 2 + t.lift, -c.z / r); // c was measured in world space, where this slot sits at x = t.x
+  const s = SIZE[def.id]; t.mPerUnit = s ? s[1] / ((s[0] === 'y' ? size.y : Math.max(size.x, size.z)) / r) : 0;
+  if (t.mPerUnit) { const h = CHILD / t.mPerUnit; t.child.scale.set(h / 2, h, 1); t.child.position.set(Math.max(size.x, size.z) / 2 / r + h * 0.3 + 0.1, 0, 0.2); }
+  t.state = 'ready'; t.ring.visible = false; t.e = reduce ? 0 : 2.4; // arrive in pieces and assemble
+  if (t === it()) fill();
+}
+function ensure(i) {
+  const t = items[i]; if (!t || t.state !== 'idle') return;
+  t.state = 'loading'; t.ring.visible = true;
+  const fallback = () => { if (t.def.build) mount(t, t.def.build()); else { t.state = 'failed'; t.ring.visible = false; if (t === it()) fill(); } };
+  t.def.glb ? loadNASA(t.def.glb, obj => mount(t, obj), fallback) : fallback();
+}
+
+// ── Panel ──
+function fill() {
+  const t = it(), def = t.def;
+  document.body.dataset.world = t.mars ? 'mars' : 'moon';
+  $('#kind').textContent = `${def.year} · ${def.kind} · ${def.world}${def.glb ? ' · NASA model' : ' · simplified model'}`;
+  $('#name').textContent = def.name; $('#facts').textContent = def.facts.join(' · ');
+  $('#story').hidden = !def.signal; if (def.signal) $('#story').href = 'index.html#' + def.signal;
+  $('#size').hidden = !t.mPerUnit;
+  document.querySelectorAll('.picker button').forEach(b => { const on = b.dataset.id === def.id; b.setAttribute('aria-pressed', on); if (on) b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduce ? 'auto' : 'smooth' }); });
+  history.replaceState(null, '', '#' + def.id);
+  const keys = Object.keys(def.parts).filter(key => t.parts[key]);
+  $('#pins').replaceChildren(...keys.filter(key => key !== 'other').map(key => { const b = document.createElement('button'); b.className = 'pin'; b.textContent = def.parts[key][0]; b.dataset.k = key; b.onclick = () => choose(key); t.parts[key].pin = b; return b; }));
+  $('#parts').replaceChildren(...keys.map(key => { const li = document.createElement('li'), b = document.createElement('button'); b.textContent = def.parts[key][0]; b.dataset.k = key; b.setAttribute('aria-pressed', 'false'); b.onclick = () => choose(key); li.append(b); return li; }));
+  hint(); sync();
+}
+function hint() {
+  const t = it();
+  say(t.state === 'failed' ? '<p>NASA’s model could not be loaded. Check the connection and reload.</p>' : t.state !== 'ready' ? '<p class="mono">Loading NASA’s model…</p>'
+    : mode === 'line' ? `<p class="mono">${cur + 1} of ${items.length} · drag, scroll or use the arrows to walk the line</p>` : t.eT ? '<p>Now pick any part.</p>' : '<p>Tap the machine to take it apart.</p>');
+}
+function sync() {
+  const t = it();
+  document.body.classList.toggle('inspect', mode === 'inspect');
+  $('#apart').textContent = t.eT ? 'Put it back together' : 'Take it apart';
+  $('#game').textContent = quest ? 'Stop the game' : 'Play: find the part';
+  $('#size').setAttribute('aria-pressed', showSize);
+  document.querySelectorAll('#parts button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === selected));
+  document.querySelectorAll('.pin').forEach(b => b.classList.toggle('on', b.dataset.k === selected));
+}
+
+// ── Moving ──
+function go(i, andInspect) { // walk to machine i
+  i = Math.max(0, Math.min(items.length - 1, i));
+  if (i !== cur) { pickPart(null); it().eT = 0; quest = null; showSize = false; cur = i; }
+  camXT = items[i].x; for (const j of [i, i + 1, i - 1, i + 2]) ensure(j);
+  if (andInspect !== undefined) mode = andInspect ? 'inspect' : 'line';
+  if (mode === 'line') { it().eT = 0; pickPart(null); quest = null; showSize = false; }
+  fill();
+}
+function setApart(on) { const t = it(); if (t.state !== 'ready') return; t.eT = on ? 1 : 0; if (on) showSize = false; if (!on) pickPart(null); sync(); if (!quest && !showSize) hint(); }
+// Selecting a part lights it, fades the rest, and the camera flies in on it.
+function pickPart(key) {
+  if (selected) light(selected, 0);
+  selected = key; if (key) light(key, 0.45);
+  for (const m of it().meshes) { const dim = key && m.userData.key !== key; eachMat(m, x => { x.transparent = dim || x.userData.tr0; x.opacity = dim ? 0.14 : x.userData.op0; x.depthWrite = !dim; }); }
+  sync();
+}
+function choose(key) {
+  const t = it(), def = t.def; if (!t.parts[key]) return;
+  t.eT = 1; showSize = false;
+  if (quest) {
+    if (key === quest.k) { if (!quest.misses) score++; toast(['Yes! That’s it.', 'Spot on!', 'Got it!'][quest.todo.length % 3]); pickPart(key); say(`<h2>${def.parts[key][0]}</h2><p>${def.parts[key][1]}</p>`); setTimeout(nextQuest, 2800); }
+    else { toast('Not that one. Try again.'); quest.misses++; if (quest.misses >= 2) light(quest.k, 0.2); }
+    return;
+  }
+  pickPart(key); say(`<h2>${def.parts[key][0]}</h2><p>${def.parts[key][1]}</p>`);
+}
+// The game: a part is named and you tap it on the model. Labels are hidden. Two misses and the right part glows faintly.
+function nextQuest() {
+  if (!quest) return; const def = it().def;
+  if (!quest.todo.length) { say(`<h2>All found!</h2><p>${'★'.repeat(score)}${'☆'.repeat(quest.total - score)} You found ${score} of ${quest.total} parts of the ${def.name} on the first try. Walk on and try the next machine.</p>`); quest = null; pickPart(null); return sync(); }
+  pickPart(null); quest.k = quest.todo.pop(); quest.misses = 0;
+  say(`<h2>Find: ${def.parts[quest.k][0]}</h2><p class="mono">${quest.total - quest.todo.length} of ${quest.total} · tap the part on the model</p>`);
+}
+$('#game').onclick = () => {
+  if (quest) { quest = null; pickPart(null); hint(); return sync(); }
+  const todo = Object.keys(it().parts).filter(key => key !== 'other').sort(() => Math.random() - 0.5);
+  if (!todo.length) return;
+  quest = { todo, total: todo.length }; score = 0; it().eT = 1; showSize = false; sync(); nextQuest();
+};
+$('#apart').onclick = () => setApart(!it().eT);
+$('#size').onclick = () => {
+  showSize = !showSize; if (showSize) { quest = null; setApart(false); }
+  sync(); const s = SIZE[it().def.id];
+  showSize ? say(`<h2>${s[1]} metres ${s[0] === 'y' ? 'tall' : 'wide'}</h2><p>The orange figure is a ten-year-old, ${CHILD} metres tall, standing next to it.</p>`) : hint();
+};
+$('#enter').onclick = () => go(cur, true); $('#back').onclick = () => go(cur, false);
+$('#prevM').onclick = () => go(cur - 1); $('#nextM').onclick = () => go(cur + 1);
+
+// ── Pointer ──
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function hit(ev) {
+  const r = canvas.getBoundingClientRect(); ndc.set((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, cam); const pool = mode === 'inspect' ? it().meshes : items.flatMap(t => Math.abs(t.i - cur) < 3 ? t.meshes : []);
+  const h = ray.intersectObjects(pool, false)[0]; return h ? h.object : null;
+}
+function hover(o, ev) {
+  const tip = $('#tip'), key = o && mode === 'inspect' ? o.userData.key : null;
+  if (key !== hovered) { if (hovered && hovered !== selected) light(hovered, 0); hovered = key; if (key && key !== selected) light(key, 0.22); }
+  canvas.style.cursor = o && mode === 'line' ? 'pointer' : '';
+  if (key && it().e > 0.5 && !quest && innerWidth < 960) { tip.textContent = it().def.parts[key][0]; tip.style.opacity = 1; tip.style.transform = `translate(${ev.clientX + 14}px, ${ev.clientY + 14}px)`; } else tip.style.opacity = 0;
+}
+const nearest = x => items.reduce((a, b) => Math.abs(b.x - x) < Math.abs(a.x - x) ? b : a).i;
+let drag = null, W = 1, H = 1, snapT;
+canvas.addEventListener('pointerdown', ev => { drag = { x: ev.clientX, y: ev.clientY, moved: 0 }; canvas.setPointerCapture(ev.pointerId); });
+canvas.addEventListener('pointermove', ev => {
+  if (!drag) { if (ev.pointerType === 'mouse') hover(hit(ev), ev); return; }
+  const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y; drag.x = ev.clientX; drag.y = ev.clientY; drag.moved += Math.abs(dx) + Math.abs(dy);
+  if (mode === 'inspect') { yaw -= dx * 0.008; pitch = Math.max(-0.05, Math.min(1.4, pitch + dy * 0.006)); }
+  else { camXT = Math.max(-1, Math.min(END + 1, camXT - dx * 11 / W)); const n = nearest(camXT); if (n !== cur) { cur = n; fill(); for (const j of [n, n + 1, n - 1]) ensure(j); } } // dragging the floor
+});
+canvas.addEventListener('pointerup', ev => {
+  const tap = drag && drag.moved < 6; drag = null;
+  if (mode === 'line') { if (tap) { const o = hit(ev); if (o) go(o.userData.item.i, true); } else go(nearest(camXT)); return; }
+  if (!tap) return;
+  const o = hit(ev), t = it();
+  if (!o) { if (!quest) selected ? (pickPart(null), hint()) : t.eT ? setApart(false) : go(cur, false); } else if (!t.eT) setApart(true); else choose(o.userData.key);
+});
+canvas.addEventListener('pointerleave', () => hover(null));
+canvas.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  if (mode === 'inspect') { dist = Math.max(2.2, Math.min(9, dist * (1 + ev.deltaY * 0.0012))); return; }
+  camXT = Math.max(-1, Math.min(END + 1, camXT + (ev.deltaY + ev.deltaX) * 0.006)); clearTimeout(snapT); snapT = setTimeout(() => go(nearest(camXT)), 160);
+}, { passive: false });
+addEventListener('keydown', ev => {
+  if (ev.target.closest('button, a') && (ev.key === 'Enter' || ev.key === ' ')) return;
+  const line = mode === 'line', onCanvas = document.activeElement === canvas || document.activeElement === document.body;
+  const f = { ArrowLeft: () => line ? go(cur - 1) : onCanvas && (yaw += 0.12), ArrowRight: () => line ? go(cur + 1) : onCanvas && (yaw -= 0.12), ArrowUp: () => !line && onCanvas && (pitch = Math.min(1.4, pitch + 0.1)), ArrowDown: () => !line && onCanvas && (pitch = Math.max(-0.05, pitch - 0.1)),
+    Enter: () => onCanvas && (line ? go(cur, true) : setApart(!it().eT)), Escape: () => line ? 0 : selected ? (pickPart(null), hint()) : it().eT ? setApart(false) : go(cur, false), '[': () => go(cur - 1), ']': () => go(cur + 1) }[ev.key];
+  if (f) { f(); if (onCanvas) ev.preventDefault(); }
+});
+
+for (const world of ['Moon', 'Mars']) {
+  const row = document.createElement('div'); row.className = 'row'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', world);
+  row.append(Object.assign(document.createElement('span'), { className: 'mono world', textContent: world }), ...items.filter(t => t.def.world.startsWith(world)).map(t => {
+    const b = document.createElement('button'); b.className = 'mono'; b.dataset.id = t.def.id; b.innerHTML = `<small>${t.def.year}</small> ${t.def.name}`; b.onclick = () => go(t.i); return b;
+  }));
+  $('.picker').append(row);
+}
+{ const start = items.find(t => t.def.id === location.hash.slice(1)); cur = start ? start.i : 0; camX = camXT = it().x; go(cur); }
+if (!R) say('<p>3D is not available in this browser.</p>');
+
+if (R) (function loop() {
+  const w = canvas.clientWidth, h = canvas.clientHeight, d = Math.min(devicePixelRatio || 1, 2);
+  if (canvas.width !== Math.round(w * d) || canvas.height !== Math.round(h * d)) { W = w; H = h; R.setPixelRatio(d); R.setSize(w, h, false); cam.aspect = w / h; cam.fov = w < h ? 52 : 36; }
+  const ease = reduce ? 1 : 0.08, t = it(), wide = W >= 960;
+  k += ((mode === 'inspect' ? 1 : 0) - k) * ease; camX += (camXT - camX) * (drag && mode === 'line' ? 0.35 : ease);
+  // each machine: assemble / come apart, and turn slowly on its spot while you are just walking past
+  for (const m of items) {
+    if (m.state === 'loading') m.ring.rotation.y += 0.05;
+    if (m.state !== 'ready') continue;
+    m.e = reduce ? m.eT : m.e + (m.eT - m.e) * (m.eT === 0 && m.e > 1 ? 0.05 : 0.09); if (Math.abs(m.e - m.eT) < 0.001) m.e = m.eT;
+    const eNow = m.e * 1000 + (m === t && selected ? 1 : 0);
+    if (eNow !== m.lastE) { m.lastE = eNow; for (const o of m.meshes) o.position.copy(o.userData.base).addScaledVector(o.userData.unit, m.e * (m === t && o.userData.key === selected ? 1.3 : 1)); }
+    if (!reduce && !(m === t && mode === 'inspect')) m.wrap.rotation.y += 0.004;
+    m.child.visible = m === t && showSize && m.e < 0.3;
+  }
+  // camera: blend between the walking view and an orbit around the current machine (or its selected part)
+  selected && t.parts[selected] ? where(t, t.parts[selected], focusT) : focusT.set(t.x, t.h / 2 + t.lift, 0);
+  k < 0.02 ? focus.copy(focusT) : focus.lerp(focusT, ease); zf += ((selected ? 0.62 : 1) - zf) * ease;
+  const D = dist * (1 + Math.min(t.e, 1) * 0.45) * zf, back = wide ? 7.2 : 9.5;
+  tmp.set(camX, 1.5, back).lerp(tmp2.set(focus.x + Math.sin(yaw) * Math.cos(pitch) * D, focus.y + Math.sin(pitch) * D, focus.z + Math.cos(yaw) * Math.cos(pitch) * D), k); cam.position.copy(tmp);
+  tmp.set(camX, 0.95, 0).lerp(focus, k); cam.lookAt(tmp);
+  wide ? cam.setViewOffset(W, H, -W * 0.15 * k, -H * 0.06 * (1 - k), W, H) : cam.setViewOffset(W, H, 0, H * 0.17, W, H); cam.updateProjectionMatrix(); // keep the model clear of the text
+  key.position.set(tmp.x + 4, 6, 5); key.target.position.set(tmp.x, 0, 0);
+  R.render(scene, cam);
+  // labels follow their parts
+  const pinsOn = mode === 'inspect' && t.e > 0.55 && t.e < 1.3 && !quest;
+  for (const p of Object.values(t.parts)) if (p.pin) {
+    where(t, p, tmp).project(cam);
+    p.pin.style.opacity = pinsOn && tmp.z < 1 && (!selected || selected === p.key) ? 1 : 0; p.pin.style.pointerEvents = pinsOn ? 'auto' : 'none';
+    p.pin.style.transform = `translate(${((tmp.x * 0.5 + 0.5) * W).toFixed(1)}px, ${((-tmp.y * 0.5 + 0.5) * H).toFixed(1)}px) translate(10px, -50%)`;
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

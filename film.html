@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abandoned but Not Forgotten · the film</title>
+<meta name="theme-color" content="#05060a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,300;6..72,500&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #05060a; --ink: #f4f0e7; --sig: #ffb84d; --mono: "IBM Plex Mono", ui-monospace, monospace; --serif: "Newsreader", Georgia, serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--serif); overflow: hidden; }
+canvas, .fade, .hud { position: fixed; inset: 0; width: 100%; height: 100%; }
+.fade { background: #000; opacity: 0; pointer-events: none; }
+.hud { pointer-events: none; }
+.hud > * { opacity: 0; }
+a, button { pointer-events: auto; font: 500 .8125rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); background: rgb(0 0 0 / .45); border: 1px solid rgb(255 255 255 / .4); padding: 0 1.1rem; min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; cursor: pointer; }
+a.go { background: var(--sig); border-color: var(--sig); color: #1a1205; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.title { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 16px; }
+h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035em; margin: 0; text-shadow: 0 4px 40px #000; }
+.cap { position: absolute; left: 16px; right: 16px; bottom: 6vh; margin: 0 auto; max-width: 30em; text-align: center; font: 300 clamp(1.15rem, 3.2vw, 1.9rem)/1.2 var(--serif); letter-spacing: -.015em; text-shadow: 0 2px 20px #000, 0 0 6px #000; }
+.cap b { font-weight: 500; color: var(--sig); }
+
+/* Cards pinned to 3D objects */
+.tag { position: absolute; left: 0; top: 0; width: clamp(118px, 17vw, 190px); box-shadow: 0 12px 40px rgb(0 0 0 / .6); transform-origin: 50% 100%; background: rgb(8 9 13 / .9); border: 1px solid rgb(255 255 255 / .35); padding: 6px; will-change: transform; }
+.tag::after { content: ""; position: absolute; left: 50%; bottom: -15px; width: 1px; height: 14px; background: #fff; }
+.tag img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.tag span { display: block; font: 500 clamp(.85rem, 1.5vw, 1.1rem)/1.2 var(--serif); padding: 7px 3px 2px; }
+
+.end { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; padding: 11vh 16px 7vh; }
+.end > * { opacity: 0; }
+.end h2 { font: 300 clamp(2.4rem, 9.5vw, 6rem)/1 var(--serif); letter-spacing: -.03em; margin: 0; text-shadow: 0 4px 40px #000; }
+.end p { font-size: clamp(1.05rem, 3.4vw, 1.5rem); line-height: 1.3; max-width: 27em; margin: 0 0 1.25rem; text-shadow: 0 2px 16px #000; }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+
+.bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--sig); transform-origin: left; transform: scaleX(0); }
+.skip { position: fixed; top: 14px; right: 14px; z-index: 5; display: flex; gap: .25rem; }
+.skip > * { border: 0; background: none; color: rgb(255 255 255 / .75); }
+.start { position: fixed; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; padding: 16px; text-align: center; background: radial-gradient(circle at 50% 60%, rgb(5 6 10 / .35), rgb(5 6 10 / .9)); transition: opacity .8s; }
+.start.gone { opacity: 0; pointer-events: none; }
+.start p { margin: 0; font-size: clamp(1.05rem, 3vw, 1.4rem); max-width: 26em; }
+#script { display: none; }
+#big { position: absolute; inset: 0; margin: 0; display: grid; place-content: center; text-align: center; font: 300 clamp(5rem, 26vw, 16rem)/1 var(--serif); letter-spacing: -.04em; text-shadow: 0 4px 60px #000; font-variant-numeric: tabular-nums; }
+#big small { display: block; font: 500 clamp(.8rem, 2vw, 1.1rem)/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--sig); }
+#big.num { font-size: clamp(2.6rem, 11vw, 7.5rem); }
+.still #big { display: none; }
+.still .start { display: none; }
+.still #script { display: block; list-style: none; padding: 0; max-width: 30em; margin: 2rem auto; font-size: 1.25rem; line-height: 1.5; }
+.still #script li { margin-bottom: 1rem; }
+.still #sub { display: none; }
+
+/* Still version: reduced motion, or no WebGL. Same story as a quiet page. */
+.still, .still body { overflow: auto; height: auto; }
+.still canvas, .still .fade, .still .bar, .still .tags { display: none; }
+.still .hud, .still .title, .still .cap, .still .end { position: static; display: block; padding: 0; }
+.still .hud { padding: 5rem 16px 3rem; text-align: center; }
+.still .hud > *, .still .end > * { opacity: 1; margin: 2.5rem auto; }
+.still .actions { display: flex; }
+</style>
+</head>
+<body>
+<canvas id="c" aria-hidden="true"></canvas>
+<div class="fade"></div>
+<div class="bar" aria-hidden="true"></div>
+<div class="skip"><button id="snd" hidden>Sound on</button><a href="index.html">Skip ▸</a></div>
+
+<div class="start" id="start">
+  <h1>Abandoned<br>but Not Forgotten</h1>
+  <p>Where did everything go? An 80-second film about the machines we left on the Moon and Mars.</p>
+  <div class="actions">
+    <button class="go" id="play">▶ Play with narration</button>
+    <button id="playMute">Play without sound</button>
+  </div>
+</div>
+
+<main class="hud">
+  <p id="big" aria-hidden="true"></p>
+  <p class="cap" id="sub" aria-live="off"></p>
+  <!-- The narrator's script. data-at is when each line starts, in seconds. Shown as plain text if motion is off. -->
+  <ol id="script">
+    <li data-at="0.6">Three.</li>
+    <li data-at="1.5">Two.</li>
+    <li data-at="2.4">One.</li>
+    <li data-at="4.4">The biggest rocket ever built weighed more than four hundred elephants. Only a tiny capsule came home.</li>
+    <li data-at="11.6">So where did the rest go?</li>
+    <li data-at="13.6">This piece hit the Moon at nine thousand kilometres an hour. The whole Moon rang like a bell.</li>
+    <li data-at="21">Twelve explorers walked here. They left a mirror. A family photo. And a tiny statue, for friends who never made it.</li>
+    <li data-at="31">Then they blasted off, and left half their spaceship behind.</li>
+    <li data-at="37.7">Next stop: Mars.</li>
+    <li data-at="39.6">Robots fell from the sky under giant parachutes.</li>
+    <li data-at="45">One little rover was built to last ninety days. It refused to quit for fourteen years.</li>
+    <li data-at="52">Then came a storm that swallowed the Sun.</li>
+    <li data-at="56.4">And the rover went silent.</li>
+    <li data-at="60">Two hundred tonnes of our machines are still out there. Cold. Quiet. Waiting.</li>
+    <li data-at="67">All except one.</li>
+    <li data-at="69.6">Fire a laser at that mirror on the Moon, and the light bounces right back. Two and a half seconds. Every single time.</li>
+    <li data-at="79.6">Abandoned. But not forgotten.</li>
+  </ol>
+  <div class="tags" aria-hidden="true" style="opacity:1"></div>
+  <section class="end" style="opacity:1">
+    <h2 data-a="67">All except one.</h2>
+    <div data-a="80.5">
+      <div class="actions">
+        <button id="again">↻ Play again</button>
+        <a class="go" href="index.html">Open the listening station ▸</a>
+        <a href="models.html">◈ Explore the 3D models</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="models.js"></script>
+<script>
+// 30-second film. Everything is a pure function of t (seconds): replay is "reset the clock", ?t=7 freezes a frame.
+// Storyboard:  0–4.5 launch, a stage is dropped · 4.5–13.5 Moon: the rocket stage hits, an astronaut leaves
+// gifts, the top of the lander flies home · 13.5–20.5 Mars: a parachute falls, a rover works, the dust comes
+// · 20.5+ the tally, then the laser that still comes back.
+// Spacecraft are NASA's models (models.js: loadNASA) with hand-built stand-ins until they download.
+const still = () => document.documentElement.classList.add('still');
+const FREEZE = new URLSearchParams(location.search).has('t') ? +new URLSearchParams(location.search).get('t') : null;
+const T1 = 4.5, T2 = 13.5, T3 = 20.5, RT_END = 84;
+let R;
+try { if (matchMedia('(prefers-reduced-motion: reduce)').matches && FREEZE === null) throw 0; R = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true, preserveDrawingBuffer: FREEZE !== null }); }
+catch (e) { still(); }
+
+if (R) {
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const clamp = x => Math.min(1, Math.max(0, x));
+const span = (t, a, b) => { const x = clamp((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+const pop = (t, at) => { const x = clamp((t - at) / 0.7); return x === 0 ? 0 : 1 - Math.cos(x * Math.PI * 2.5) * (1 - x) * (1 - x) * (1 - x * 0.5); }; // springy 0→1
+const mat = (color, o) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.8, metalness: 0 }, o));
+const glow = (color, o) => new THREE.MeshBasicMaterial(Object.assign({ color, transparent: true }, o));
+const add = (parent, geo, m, p = [0, 0, 0]) => { const x = new THREE.Mesh(geo, m); x.position.set(...p); parent.add(x); return x; };
+const cyl = (r1, r2, h, n = 16) => new THREE.CylinderGeometry(r1, r2, h, n);
+const ball = (r, n = 32) => new THREE.SphereGeometry(r, n, n / 2);
+const box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+const group = (parent, p = [0, 0, 0]) => { const g = new THREE.Group(); g.position.set(...p); parent.add(g); return g; };
+const model = (id, parent, scale, p) => { const m = MODELS.find(m => m.id === id).build(); m.scale.setScalar(scale); m.position.set(...p); parent.add(m); return m; };
+const rnd = Math.random, hash = i => { const s = Math.sin(i * 127.1) * 43758.5453; return s - Math.floor(s); };
+const GR = 80, gy = (x, z) => Math.sqrt(GR * GR - x * x - z * z) - GR; // curved ground: small worlds, close horizons
+
+// Replace a hand-built stand-in with NASA's own model once it has downloaded. `size` is in the target's local units.
+function swap(path, target, size, by, then) {
+  loadNASA(path, obj => {
+    const b = new THREE.Box3().setFromObject(obj), s = b.getSize(V(0, 0, 0)), c = b.getCenter(V(0, 0, 0)), g = new THREE.Group();
+    obj.position.set(-c.x, -b.min.y, -c.z); g.add(obj); g.scale.setScalar(size / (by === 'y' ? s.y : Math.max(s.x, s.z)));
+    obj.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    target.children.forEach(ch => { if (!ch.userData.keep) ch.visible = false; });
+    target.add(g); if (then) then(g, obj);
+  });
+}
+function tex(w, h, draw, repeat) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); }
+  return t;
+}
+const blobs = (g, w, h, n, cols, r0, r1, flat = 0.6) => {
+  for (let i = 0; i < n; i++) { const r = r0 + rnd() * (r1 - r0); g.fillStyle = cols[i % cols.length]; g.beginPath(); g.ellipse(r + rnd() * (w - 2 * r), h * (0.14 + rnd() * 0.72), r, r * flat, rnd() * 3, 0, 7); g.fill(); }
+};
+const dot = tex(64, 64, g => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, '#fff'); r.addColorStop(0.35, 'rgba(255,255,255,.85)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
+const sprite = (parent, color, o) => { const s = new THREE.Sprite(new THREE.SpriteMaterial(Object.assign({ map: dot, color, blending: THREE.AdditiveBlending, depthWrite: false }, o))); parent.add(s); return s; };
+// Regolith: fine grain plus small craters with a dark floor and a bright rim. Also used as the bump map.
+const soil = (base, grains, floor, rim, craters = 90) => tex(1024, 1024, (g, w, h) => {
+  g.fillStyle = base; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 16000; i++) { g.fillStyle = grains[i % grains.length]; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2.5, 1 + rnd() * 2.5); }
+  for (let i = 0; i < craters; i++) {
+    const r = 5 + rnd() * rnd() * 46, x = r + rnd() * (w - 2 * r), y = r + rnd() * (h - 2 * r), gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, floor); gr.addColorStop(0.72, floor); gr.addColorStop(0.86, rim); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+}, [26, 13]);
+const TL = new THREE.TextureLoader(); TL.setCrossOrigin('anonymous');
+const WM = 'https://upload.wikimedia.org/wikipedia/commons/';
+const real = (path, m) => TL.load(WM + path, tx => { tx.encoding = THREE.sRGBEncoding; m.map = tx; m.needsUpdate = true; }, undefined, () => {}); // on failure the drawn map stays
+
+// Smoke and fire as soft points whose size, colour and fade depend on age (0 = just left the nozzle, 1 = gone).
+function plume(parent, n, hot, cold, additive) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3)); geo.setAttribute('age', new THREE.BufferAttribute(new Float32Array(n).fill(1), 1));
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    uniforms: { px: { value: 600 }, grow: { value: 1 }, hot: { value: new THREE.Color(hot) }, cold: { value: new THREE.Color(cold) }, alpha: { value: 1 } },
+    vertexShader: 'attribute float age; uniform float px, grow; varying float a; void main(){ a = age; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = px * grow * (0.25 + age * 1.6) / -mv.z; gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform vec3 hot, cold; uniform float alpha; varying float a; void main(){ float d = length(gl_PointCoord - 0.5) * 2.0; if (d > 1.0 || a >= 1.0) discard; float f = pow(1.0 - a, 1.6) * smoothstep(1.0, 0.1, d); gl_FragColor = vec4(mix(hot, cold, smoothstep(0.0, 0.35, a)), f * alpha); }',
+  });
+  const p = new THREE.Points(geo, m); p.frustumCulled = false; parent.add(p); p.n = n; return p;
+}
+
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 0.1, 4000);
+const BLACK = new THREE.Color('#030408'), SKY = new THREE.Color('#e2bd9a'), STORM = new THREE.Color('#6a442b'), WHITE_C = new THREE.Color(0xffffff), STORM_TINT = new THREE.Color(0x77503a), tmpC = new THREE.Color();
+scene.background = BLACK.clone();
+const fog = new THREE.Fog(SKY.getHex(), 12, 140);
+const amb = new THREE.AmbientLight(0xffffff, 0.3), sun = new THREE.DirectionalLight(0xffffff, 1.2);
+scene.add(amb, sun);
+R.outputEncoding = THREE.sRGBEncoding; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.2;
+R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0015; sun.shadow.normalBias = 0.03;
+Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, far: 70 });
+const ENV_SPACE = ENV(R, '#1b2540', '#000000'), ENV_MARS = ENV(R, '#b98f70', '#4a2c1c');
+
+const stars = (() => {
+  const p = new Float32Array(2600 * 3);
+  for (let i = 0; i < p.length; i += 3) { const v = V(rnd() - .5, rnd() - .5, rnd() - .5).normalize().multiplyScalar(400 + rnd() * 500); p[i] = v.x; p[i + 1] = v.y; p[i + 2] = v.z; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  const s = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 4, map: dot, transparent: true, depthWrite: false, fog: false })); scene.add(s); return s;
+})();
+const sky = add(scene, ball(1500, 32), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide, fog: false, depthWrite: false })); // the real Milky Way, dimmed
+TL.load(WM + '0/0e/Solarsystemscope_texture_2k_stars_milky_way.jpg', tx => { tx.encoding = THREE.sRGBEncoding; sky.material.map = tx; sky.material.color.set(0x8a8a8a); sky.material.needsUpdate = true; }, undefined, () => {});
+
+// ───────── SPACE ─────────
+const S = group(scene);
+const earthMat = mat(0xffffff, { roughness: 0.75, map: tex(1024, 512, (g, w, h) => { g.fillStyle = '#1b4f9c'; g.fillRect(0, 0, w, h); blobs(g, w, h, 34, ['#3f8a4f', '#4c7a3e', '#8a8452'], 20, 80); g.fillStyle = '#fff'; g.fillRect(0, 0, w, 26); g.fillRect(0, h - 30, w, 30); }) });
+real('c/c3/Solarsystemscope_texture_2k_earth_daymap.jpg', earthMat);
+const moonMat = mat(0xffffff, { roughness: 1, map: tex(512, 256, (g, w, h) => { g.fillStyle = '#b5b2aa'; g.fillRect(0, 0, w, h); blobs(g, w, h, 90, ['#8f8c85', '#a19e96', '#7f7c76'], 5, 34, 1); }) });
+real('2/26/Solarsystemscope_texture_2k_moon.jpg', moonMat);
+const earth = add(S, ball(5, 64), earthMat);
+const clouds = add(S, ball(5.05, 64), mat(0xffffff, { transparent: true, depthWrite: false, opacity: 0 }));
+TL.load(WM + 'e/ed/Solarsystemscope_texture_2k_earth_clouds.jpg', tx => { clouds.material.alphaMap = tx; clouds.material.opacity = 0.9; clouds.material.needsUpdate = true; }, undefined, () => {});
+const air = sprite(S, 0xffffff, { map: tex(256, 256, g => { const r = g.createRadialGradient(128, 128, 96, 128, 128, 128); r.addColorStop(0, 'rgba(90,160,255,0)'); r.addColorStop(0.12, 'rgba(90,160,255,.75)'); r.addColorStop(1, 'rgba(90,160,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 256, 256); }) }); air.scale.setScalar(13.1);
+const MOON = V(24, 4, -8);
+const moonS = add(S, ball(1.5, 48), moonMat, MOON.toArray());
+
+const rocket = group(S), hull = group(rocket); hull.rotation.x = Math.PI / 2; // nose along +Z so lookAt() aims it
+const WHITE = mat(0xf4f4f2, { roughness: 0.45 }), INK = mat(0x151517, { roughness: 0.5 });
+add(hull, cyl(0.3, 0.3, 1.2, 24), WHITE, [0, -0.3, 0]); add(hull, cyl(0.2, 0.3, 0.22, 24), WHITE, [0, 0.41, 0]); add(hull, cyl(0.2, 0.2, 0.5, 24), WHITE, [0, 0.77, 0]);
+for (const y of [-0.82, -0.2, 0.22]) add(hull, cyl(0.304, 0.304, 0.1, 24), INK, [0, y, 0]);
+add(hull, new THREE.ConeGeometry(0.2, 0.3, 24), mat(0xcfd3da, { metalness: 0.8, roughness: 0.3 }), [0, 1.17, 0]);
+swap('Saturn V/Saturn V.glb', hull, 3.2, 'y', g => { g.position.y = -1.2; });
+const engineGlow = sprite(rocket, 0xffc27a); engineGlow.position.z = -1.5;
+const fire = plume(S, 140, 0xfff1c9, 0xff7a1e, true), smoke = plume(S, 420, 0xffd9a8, 0xcfd2d8, false);
+const P0 = V(1.2, 5.1, 1.5), P1 = V(9, 15, 8), P2 = V(22.2, 5.2, -6.6);
+const bez = u => V(0, 0, 0).addScaledVector(P0, (1 - u) * (1 - u)).addScaledVector(P1, 2 * (1 - u) * u).addScaledVector(P2, u * u);
+const T_GO = 0.7, uAt = t => { const x = clamp((t - T_GO) / 3.8); return x * x * (2 - x) * 0.5 + x * 0.5; }; // slow off the pad, then steady
+const U_DROP = 0.4, dropped = model('s-ivb', S, 0.085, [0, 0, 0]); // a spent stage, let go on the way up
+
+const E_HIT = MOON.clone().normalize().multiplyScalar(5.05), M_HIT = MOON.clone().addScaledVector(MOON.clone().normalize(), -1.55);
+const beam = add(S, cyl(0.06, 0.06, E_HIT.distanceTo(M_HIT), 8), glow(0x6dff8a, { opacity: 0.45, blending: THREE.AdditiveBlending }), E_HIT.clone().lerp(M_HIT, 0.5).toArray());
+beam.quaternion.setFromUnitVectors(V(0, 1, 0), M_HIT.clone().sub(E_HIT).normalize());
+const pulse = sprite(S, 0xb6ffc6), spark = sprite(S, 0xbfffd0); spark.position.copy(M_HIT);
+const echo = add(S, new THREE.RingGeometry(0.5, 0.62, 40), glow(0x6dff8a, { side: THREE.DoubleSide }), E_HIT.toArray());
+
+// A ridgeline: a strip whose top edge is layered noise. `mesa` clips it flat-topped (Mars); without it the
+// hills stay rounded, like the old lunar mountains. yRef keeps the strip just above the curved horizon.
+function ridge(parent, z, height, color, seed, mesa) {
+  const pos = [], idx = [], yRef = 2.5 - 0.25 * (Math.abs(z) + 8);
+  for (let x = -170, i = 0; x <= 170; x += 2, i++) {
+    let n = 0.5 + 0.3 * Math.sin(x * 0.045 + seed) + 0.2 * Math.sin(x * 0.11 + seed * 2.3) + (mesa ? 0.08 * Math.sin(x * 0.37 + seed * 5) : 0);
+    n = mesa ? Math.min(0.78, Math.max(0.12, n)) : 0.2 + 0.8 * Math.pow(Math.max(0, n), 1.4);
+    pos.push(x, yRef + height * n, z, x, yRef - 14, z + (mesa ? 6 : 16));
+    if (i) idx.push(i * 2 - 2, i * 2 - 1, i * 2, i * 2, i * 2 - 1, i * 2 + 1);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  parent.add(new THREE.Mesh(g, mat(color, { roughness: 1 })));
+}
+
+// ───────── MOON ─────────
+const Mn = group(scene);
+const moonSoil = soil('#8f8d87', ['#a3a19a', '#7d7b76', '#96948e', '#b0aea6'], 'rgba(60,59,56,.55)', 'rgba(205,203,196,.7)');
+const moonGround = add(Mn, ball(GR, 128), mat(0xcfcdc7, { map: moonSoil, bumpMap: moonSoil, bumpScale: 0.2, roughness: 1 }), [0, -GR, 0]); moonGround.rotation.x = Math.PI / 2; // pole to the horizon, so the texture is even underfoot
+ridge(Mn, -44, 6, 0x5a5955, 2.2); ridge(Mn, -62, 10, 0x4e4d4a, 5.6); ridge(Mn, -88, 15, 0x434240, 9.1); // rounded massifs, no haze: space is airless
+for (let i = 0; i < 150; i++) { // scattered rocks, a few boulders, kept off the astronaut's path
+  const x = rnd() * 60 - 30, z = rnd() * 44 - 34; if (Math.hypot(x - 1.5, z - 3) < 4.2) continue;
+  const big = rnd() < 0.05, r = big ? 0.4 + rnd() * 0.6 : 0.03 + rnd() * rnd() * 0.25;
+  const m = add(Mn, new THREE.DodecahedronGeometry(r), mat([0x8e8c86, 0x77756f, 0xa3a19a][i % 3], { roughness: 1, flatShading: true }), [x, gy(x, z) + r * 0.25, z]); m.rotation.set(x, z, r); m.scale.y = 0.6;
+}
+add(Mn, ball(4.2, 48), earthMat, [-16, 17, -55]).rotation.y = 2; const earthGlow = sprite(Mn, 0x5aa0ff, { opacity: 0.35 }); earthGlow.position.set(-16, 17, -56); earthGlow.scale.setScalar(13);
+
+// The lander. Once NASA's model arrives, everything above the waist is the ascent stage and can lift off.
+const lander = model('lm-descent', Mn, 0.62, [0, 0, 0]); lander.rotation.y = -1.2;
+let ascent = [];
+swap('Apollo Lunar Module/Apollo Lunar Module.glb', lander, 7, 'y', (g, obj) => {
+  scene.updateMatrixWorld(true);
+  obj.traverse(o => {
+    if (!o.isMesh) return;
+    let names = ''; for (let p = o; p && p !== obj; p = p.parent) names += p.name + '|';
+    const c = new THREE.Box3().setFromObject(o).getCenter(V(0, 0, 0));
+    if (/group31/.test(names) || c.y < 1.85) return; // legs and descent stage stay (1.85 world units ≈ the join)
+    const inv = new THREE.Matrix4().copy(o.parent.matrixWorld).invert();
+    ascent.push({ o, base: o.position.clone(), up: V(0, 1, 0).applyMatrix4(inv).sub(V(0, 0, 0).applyMatrix4(inv)) });
+  });
+});
+const liftGlow = sprite(Mn, 0xffe6b0), liftRing = add(Mn, new THREE.RingGeometry(0.8, 1, 64), glow(0xe8e2d4, { side: THREE.DoubleSide }), [0, 0.12, 0]); liftRing.rotation.x = -Math.PI / 2;
+const liftDust = plume(Mn, 200, 0xe9e5da, 0xbdb9ae, false);
+
+add(Mn, cyl(0.025, 0.025, 1.9, 6), mat(0xdddddd, { metalness: 0.7 }), [3.6, gy(3.6, -1.8) + 0.95, -1.8]);
+add(Mn, new THREE.PlaneGeometry(0.95, 0.56), mat(0xffffff, { side: THREE.DoubleSide, roughness: 0.6, map: tex(190, 112, (g, w) => { for (let i = 0; i < 7; i++) { g.fillStyle = i % 2 ? '#fff' : '#d23b3b'; g.fillRect(0, i * 16, w, 16); } g.fillStyle = '#2b4c9b'; g.fillRect(0, 0, 76, 64); }) }), [4.09, gy(3.6, -1.8) + 1.6, -1.8]);
+
+// The astronaut is hand-built with joints at hip, knee, shoulder and elbow, so it can actually walk and kneel.
+// (NASA's suit model is one rigid piece.) Faces +X. Angles: + swings a limb forward, − back.
+const walker = group(Mn), suit = mat(0xf3f2ee, { roughness: 0.85 }), grey = mat(0x8d9199, { roughness: 0.7 }), red = mat(0xc23b2e, { roughness: 0.7 });
+const limb = (parent, at, r, len, m) => { const g = group(parent, at); add(g, ball(r * 1.08, 16), m); add(g, cyl(r, r * 0.92, len, 14), m, [0, -len / 2, 0]); return g; };
+const pelvis = group(walker, [0, 0.95, 0]), body = group(pelvis);
+add(body, cyl(0.23, 0.2, 0.56, 20), suit, [0, 0.3, 0]).scale.z = 1.2; add(body, ball(0.235, 20), suit, [0, 0.56, 0]).scale.set(1, 0.6, 1.25); add(body, ball(0.2, 16), suit, [0, 0.03, 0]).scale.z = 1.2;
+add(body, box(0.22, 0.66, 0.46), suit, [-0.3, 0.42, 0]); add(body, box(0.1, 0.2, 0.26), grey, [0.25, 0.36, 0]); add(body, box(0.06, 0.1, 0.44), grey, [-0.3, 0.78, 0]);
+add(body, cyl(0.15, 0.17, 0.07, 20), grey, [0, 0.66, 0]); add(body, ball(0.215, 28), suit, [0, 0.82, 0]);
+add(body, new THREE.SphereGeometry(0.19, 28, 16, 0, Math.PI * 2, 0.5, 1.7), mat(0xd9a033, { metalness: 1, roughness: 0.1 }), [0.045, 0.82, 0]).rotation.z = -Math.PI / 2;
+const mkArm = s => { const sh = limb(body, [0, 0.52, s * 0.31], 0.085, 0.3, suit), el = limb(sh, [0, -0.3, 0], 0.078, 0.27, suit); add(sh, cyl(0.089, 0.089, 0.05, 14), red, [0, -0.14, 0]); add(el, ball(0.09, 14), grey, [0, -0.3, 0]); return [sh, el]; };
+const mkLeg = s => { const hip = limb(pelvis, [0, 0, s * 0.13], 0.115, 0.45, suit), knee = limb(hip, [0, -0.45, 0], 0.1, 0.42, suit); add(hip, cyl(0.119, 0.119, 0.05, 14), red, [0, -0.2, 0]); add(knee, box(0.3, 0.13, 0.17), grey, [0.05, -0.44, 0]); return [hip, knee]; };
+const arms = [mkArm(1), mkArm(-1)], legs = [mkLeg(1), mkLeg(-1)];
+// Its route: stand by the mirror watching the impact, walk to the photo spot and kneel, walk on to the statue and kneel.
+const WA = [2.9, 3.3], WB = [0.3, 4.4], WC = [1.4, 4.1], STRIDE = 0.72;
+const LEN1 = Math.hypot(WB[0] - WA[0], WB[1] - WA[1]), LEN2 = Math.hypot(WC[0] - WB[0], WC[1] - WB[1]);
+// Bootprints appear behind the astronaut and, like the real ones, never go away.
+const prints = []; { let dWalked = 0; for (const [P, Q, len] of [[WA, WB, LEN1], [WB, WC, LEN2]]) { for (let d = 0.2, i = 0; d < len; d += STRIDE / 2, i++) { const k = d / len, nx = -(Q[1] - P[1]) / len, nz = (Q[0] - P[0]) / len, s = i % 2 ? 0.11 : -0.11, x = P[0] + (Q[0] - P[0]) * k + nx * s, z = P[1] + (Q[1] - P[1]) * k + nz * s;
+  const m = add(Mn, new THREE.PlaneGeometry(0.3, 0.13), new THREE.MeshBasicMaterial({ color: 0x3e3d3a, transparent: true, opacity: 0.55, depthWrite: false }), [x, gy(x, z) + 0.015, z]); m.rotation.set(-Math.PI / 2, 0, Math.atan2(-(Q[1] - P[1]), Q[0] - P[0])); m.userData.d = dWalked + d; prints.push(m); } dWalked += len; } }
+function walk(t) {
+  const k1 = span(t, 7.1, 8.6), k2 = span(t, 9.5, 10.15), x = WA[0] + (WB[0] - WA[0]) * k1 + (WC[0] - WB[0]) * k2, z = WA[1] + (WB[1] - WA[1]) * k1 + (WC[1] - WB[1]) * k2;
+  for (const m of prints) m.visible = LEN1 * k1 + LEN2 * k2 > m.userData.d + 0.25;
+  const ph = (LEN1 * k1 + LEN2 * k2) / STRIDE * Math.PI, m = clamp(Math.sin(k1 * Math.PI) * 2) + clamp(Math.sin(k2 * Math.PI) * 2); // m: 0 standing, 1 walking
+  const kneel = span(t, 8.55, 8.9) * (1 - span(t, 9.1, 9.45)) + span(t, 10.1, 10.4) * (1 - span(t, 10.65, 10.95));
+  const yaw = 1.24 + (3.54 - 1.24) * span(t, 6.8, 7.3) + (6.55 - 3.54) * span(t, 9.35, 9.7), idle = Math.sin(t * 1.6) * 0.015;
+  walker.position.set(x, gy(x, z) + Math.abs(Math.sin(ph)) * 0.15 * m, z); walker.rotation.y = yaw; // each step floats: one sixth gravity
+  pelvis.position.y = 0.95 - kneel * 0.3; body.rotation.z = -0.2 * m - 0.5 * kneel + idle;
+  legs.forEach(([hip, knee], i) => { const p = ph + i * Math.PI; hip.rotation.z = Math.sin(p) * 0.5 * m + 0.9 * kneel; knee.rotation.z = -Math.max(0, -Math.sin(p + 0.7)) * 0.85 * m - 0.08 - 1.42 * kneel; });
+  arms.forEach(([sh, el], i) => { const p = ph + (1 - i) * Math.PI; sh.rotation.z = Math.sin(p) * 0.4 * m + (i ? 0.25 : 1.0) * kneel + idle * 2; el.rotation.z = 0.25 + 0.4 * m + (i ? 0.3 : 0.15) * kneel; sh.rotation.x = (i ? 1 : -1) * 0.1; });
+}
+
+const photo = add(Mn, new THREE.PlaneGeometry(0.72, 0.54), mat(0xffffff, { roughness: 0.5, map: tex(256, 192, (g, w, h) => {
+  g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.fillStyle = '#7fb5e6'; g.fillRect(10, 10, w - 20, h - 20); g.fillStyle = '#6aa35c'; g.fillRect(10, 130, w - 20, 52);
+  [[70, 62, '#3d5fa8', 30], [120, 66, '#c2504a', 28], [166, 96, '#e2a83a', 20], [204, 102, '#4aa38a', 18]].forEach(([x, y, c, r]) => { g.fillStyle = c; g.fillRect(x - r * 0.8, y + r * 0.8, r * 1.6, 200); g.fillStyle = '#f0c8a0'; g.beginPath(); g.arc(x, y, r * 0.75, 0, 7); g.fill(); });
+}) }), [-0.25, gy(-0.25, 4.63) + 0.03, 4.63]);
+photo.rotation.x = -Math.PI / 2; photo.rotation.z = 0.3;
+const statue = group(Mn, [1.98, gy(1.98, 3.94), 3.94]); // drawn far larger than its real 8.5 cm so it can be seen
+const silver = mat(0xdfe3ea, { metalness: 1, roughness: 0.22 }), fig = group(statue, [0, 0.07, 0]); fig.rotation.z = Math.PI / 2;
+add(fig, cyl(0.07, 0.06, 0.42, 10), silver); add(fig, ball(0.075, 12), silver, [0, 0.28, 0]); add(statue, box(0.34, 0.26, 0.03), silver, [0, 0.13, -0.3]).rotation.x = -0.3;
+const mirror = model('lrrr', Mn, 1.7, [3.9, gy(3.9, 2.9), 2.9]); mirror.rotation.y = 2.6;
+const glint = sprite(Mn, 0xbfe6ff); glint.position.set(3.9, gy(3.9, 2.9) + 0.6, 2.9);
+
+const IMPACT = V(13, gy(13, -26), -26);
+const stage = model('s-ivb', Mn, 0.14, [0, 0, 0]); stage.rotation.z = 2.7;
+const shock = add(Mn, new THREE.RingGeometry(0.85, 1, 64), glow(0xfff2c9, { side: THREE.DoubleSide }), [IMPACT.x, IMPACT.y + 0.15, IMPACT.z]); shock.rotation.x = -Math.PI / 2;
+const flash = sprite(Mn, 0xfff4d6); flash.position.copy(IMPACT);
+const EJ = 260, ejV = Array.from({ length: EJ }, () => { const a = rnd() * 6.283, h = 1 + rnd() * 4.5; return [Math.cos(a) * h, 2.5 + rnd() * 5.5, Math.sin(a) * h]; });
+const ejGeo = new THREE.BufferGeometry(); ejGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(EJ * 3), 3));
+const ejecta = new THREE.Points(ejGeo, new THREE.PointsMaterial({ color: 0xd9d5c9, size: 0.5, map: dot, transparent: true, depthWrite: false })); Mn.add(ejecta);
+
+// ───────── MARS ─────────
+const Ms = group(scene);
+const marsSoil = soil('#8a5236', ['#9a6040', '#7a452c', '#a56c48', '#6e3f29', '#4a2c20'], 'rgba(70,36,22,.35)', 'rgba(190,130,95,.35)', 12);
+const marsGround = add(Ms, ball(GR, 128), mat(0xffffff, { map: marsSoil, bumpMap: marsSoil, bumpScale: 0.16, roughness: 1 }), [0, -GR, 0]); marsGround.rotation.x = Math.PI / 2;
+// Sky: bright butterscotch haze at the horizon, darker overhead. Fog is the same colour as the horizon, so distance fades into it.
+const marsSky = add(Ms, ball(900, 32), new THREE.MeshBasicMaterial({ side: THREE.BackSide, fog: false, depthWrite: false, map: tex(8, 256, (g, w, h) => { const r = g.createLinearGradient(0, 0, 0, h); r.addColorStop(0, '#7d5f4c'); r.addColorStop(0.36, '#b98f70'); r.addColorStop(0.48, '#e2bd9a'); r.addColorStop(1, '#e2bd9a'); g.fillStyle = r; g.fillRect(0, 0, w, h); }) }));
+ridge(Ms, -46, 7, 0x6f4029, 1.3, true); ridge(Ms, -64, 12, 0x7d4a30, 4.1, true); ridge(Ms, -92, 19, 0x8a5538, 7.7, true);
+// Rocks: dark basalt, mostly pebbles, a few boulders. Kept off the rover's lane.
+for (let i = 0; i < 190; i++) {
+  const x = rnd() * 64 - 32, z = rnd() * 44 - 34; if (Math.abs(z - 2) < 1.7) continue;
+  const big = rnd() < 0.06, r = big ? 0.5 + rnd() * 0.7 : 0.04 + rnd() * rnd() * 0.3;
+  const m = add(Ms, new THREE.DodecahedronGeometry(r), mat([0x4a3228, 0x5c3a2a, 0x3d2b25][i % 3], { roughness: 1, flatShading: true }), [x, gy(x, z) + r * 0.25, z]); m.rotation.set(x, z, r); m.scale.set(1, 0.55 + rnd() * 0.3, 0.8 + rnd() * 0.5);
+}
+add(Ms, ball(1.1, 24), new THREE.MeshBasicMaterial({ color: 0xfffaf0, fog: false }), [30, 30, -110]);
+const sunHalo = sprite(Ms, 0xfff0d8, { fog: false, opacity: 0.6 }); sunHalo.position.set(30, 30, -109); sunHalo.scale.setScalar(20);
+
+const rover = model('opportunity', Ms, 1.3, [0, 0, 0]), wheels = rover.userData.wheels, head = rover.userData.head;
+const insight = model('insight', Ms, 0.75, [2.9, gy(2.9, -3), -3]);
+swap('InSight Cruise Lander/InSight Cruise Lander (arm deployed).glb', insight, 6, 'x');
+const cells = []; rover.traverse(m => { if (m.isMesh && m.material.name === 'cell') cells.push(m.material); });
+const CLEAN = new THREE.Color(0xffffff), DUSTY = new THREE.Color(0xd08a55);
+const tracks = [-1, 1].map(s => { const m = add(Ms, new THREE.PlaneGeometry(1, 0.2), mat(0x55301f, { roughness: 1 })); m.rotation.x = -Math.PI / 2; m.userData.z = 2 + s * 0.8; return m; });
+
+// A parachute and backshell come down in the distance, and stay where they land.
+const CH = V(-5, gy(-5, -9), -9), chute = group(Ms), canopy = group(chute);
+add(canopy, new THREE.SphereGeometry(2.2, 28, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), mat(0xffffff, { side: THREE.DoubleSide, roughness: 0.7, map: tex(256, 32, (g, w, h) => { for (let i = 0; i < 16; i++) { g.fillStyle = i % 2 ? '#f3efe6' : '#e2622c'; g.fillRect(i * 16, 0, 16, h); } }) }), [0, 2.6, 0]);
+const lines = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 12 }, (_, i) => [V(Math.cos(i * 0.5236) * 2.0, 3.25, Math.sin(i * 0.5236) * 2.0), V(0, 0.5, 0)]).flat()), new THREE.LineBasicMaterial({ color: 0xf3efe6, transparent: true, opacity: 0.7 })); canopy.add(lines);
+add(chute, new THREE.ConeGeometry(0.75, 0.8, 24), mat(0xf0ece2, { roughness: 0.6 }), [0, 0.4, 0]);
+const shield = add(Ms, cyl(0.9, 0.5, 0.25, 28), mat(0x5a3a28, { roughness: 0.9 })), SH = V(-9, gy(-9, -5), -5);
+const thud = sprite(Ms, 0xe6a878, { blending: THREE.NormalBlending, opacity: 0 }); thud.position.copy(SH);
+
+const LOST = V(9, gy(9, -12), -12);
+const dust = (() => {
+  const p = new Float32Array(1800 * 3);
+  for (let i = 0; i < p.length; i += 3) { p[i] = rnd() * 80 - 40; p[i + 1] = rnd() * rnd() * 8; p[i + 2] = rnd() * 30 - 16; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  const d = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xf2bd90, size: 0.3, map: dot, transparent: true, depthWrite: false, opacity: 0 })); Ms.add(d); return d;
+})();
+
+for (const set of [Mn, Ms]) set.traverse(o => { if (o.isMesh && o.material.isMeshStandardMaterial && o !== moonGround && o !== marsGround) o.castShadow = true; });
+moonGround.receiveShadow = marsGround.receiveShadow = true; moonGround.castShadow = marsGround.castShadow = false; tracks.forEach(m => { m.castShadow = false; m.receiveShadow = true; });
+
+// ───────── Cards pinned to objects (real NASA photos + the kid line from data.js) ─────────
+const TAGS = [
+  ['apollo-13-s-ivb', 5.6, 6.95, () => IMPACT.clone().add(V(0, 2.5, 0)), Mn],
+  ['duke-family-photo', 9.0, 10.5, () => photo.position.clone().add(V(-2.2, 1.6, 0)), Mn],
+  ['eagle-descent-stage', 12.0, 13.3, () => V(0, 2.2, 0), Mn],
+  ['perseverance-backshell', 14.3, 15.5, () => CH.clone().add(V(0, 1.6, 0)), Ms],
+  ['opportunity', 15.7, 17.0, () => rover.position.clone().add(V(0, 2.4, 0)), Ms],
+].map(([id, a, b, pos, set]) => {
+  const s = SIGNALS.find(s => s.id === id), el = document.createElement('div');
+  el.className = 'tag'; el.innerHTML = `${s.img ? `<img src="${s.img}" alt="" onerror="this.remove()">` : ''}<span>${s.kid}</span>`;
+  document.querySelector('.tags').append(el);
+  return { el, a, b, pos, set };
+});
+const TIMED = [...document.querySelectorAll('[data-a]')].map(el => ({ el, a: +el.dataset.a, b: el.dataset.b ? +el.dataset.b : 1e9 }));
+const fadeEl = document.querySelector('.fade'), bar = document.querySelector('.bar'), skip = document.querySelector('.skip');
+
+let W = 1, H = 1;
+function resize() {
+  W = innerWidth; H = innerHeight;
+  const d = Math.min(devicePixelRatio || 1, 2); R.setPixelRatio(d); R.setSize(W, H, false);
+  cam.aspect = W / H; cam.fov = W < H ? 72 : 50; cam.updateProjectionMatrix();
+  for (const p of [fire, smoke, liftDust]) p.material.uniforms.px.value = H * d * 1.1;
+}
+addEventListener('resize', resize); resize();
+
+const tmp = V(0, 0, 0), look = V(0, 0, 0), q = V(0, 0, 0), dir = V(0, 0, 0);
+// Fill a plume: particle i left the nozzle (life × its phase) seconds ago, from wherever the nozzle was then.
+function emit(p, t, life, from, spread, back, on) {
+  const pos = p.geometry.attributes.position, age = p.geometry.attributes.age;
+  for (let i = 0; i < p.n; i++) {
+    const a = (t / life + i / p.n) % 1, te = t - a * life;
+    if (!on(te)) { age.setX(i, 1); continue; }
+    from(te, q, dir); const s = a * spread;
+    pos.setXYZ(i, q.x - dir.x * a * back + (hash(i) - 0.5) * s, q.y - dir.y * a * back + (hash(i + 0.3) - 0.5) * s, q.z - dir.z * a * back + (hash(i + 0.7) - 0.5) * s); age.setX(i, a);
+  }
+  pos.needsUpdate = age.needsUpdate = true;
+}
+const nozzle = (te, out, d) => { const u = uAt(te); out.copy(bez(u)); d.copy(bez(Math.min(1, u + 0.01))).sub(out).normalize(); out.addScaledVector(d, -1.45); };
+
+function render(t, rt) { // t: scene time (drives the animation) · rt: real seconds since Play (drives words and the end card)
+  const A = t < T1 || t >= T3, B = t >= T1 && t < T2, C = t >= T2 && t < T3;
+  S.visible = A; Mn.visible = B; Ms.visible = C; stars.visible = sky.visible = !C;
+  const storm = span(t, 17.2, 19.4);
+  scene.fog = C ? fog : null; scene.environment = C ? ENV_MARS : ENV_SPACE;
+  scene.background.copy(C ? tmpC.copy(SKY).lerp(STORM, storm) : BLACK); fog.color.copy(scene.background);
+  amb.intensity = B ? 0.1 : C ? 0.42 - storm * 0.1 : 0.12; sun.intensity = C ? 1.9 - storm * 1.5 : B ? 2.0 : 1.7;
+  B ? sun.position.set(-10, 4.2, 5) : C ? sun.position.set(9, 5.5, -4) : sun.position.set(6, 9, 7); // low Sun on the Moon and Mars: long shadows
+  sun.color.set(C ? 0xffe6cc : 0xffffff); if (C) marsSky.material.color.copy(WHITE_C).lerp(STORM_TINT, storm);
+
+  if (A) {
+    earth.rotation.y = t * 0.2; clouds.rotation.y = t * 0.24; moonS.rotation.y = 2 + t * 0.04;
+    const launch = t < T1;
+    rocket.visible = fire.visible = smoke.visible = launch; dropped.visible = launch && uAt(t) > U_DROP;
+    beam.visible = pulse.visible = spark.visible = echo.visible = !launch && t > LASER;
+    if (launch) {
+      const u = uAt(t), e = span(t, T_GO, T1), p = bez(u), burning = t > T_GO;
+      rocket.position.copy(p); rocket.lookAt(bez(Math.min(1, u + 0.02))); hull.rotation.y = t * 0.6;
+      engineGlow.visible = burning; engineGlow.scale.setScalar(1.6 + Math.sin(t * 47) * 0.25 + Math.sin(t * 31) * 0.15);
+      emit(fire, t, 0.22, nozzle, 0.5, 1.4, te => te > T_GO); emit(smoke, t, 2.4, nozzle, 2.6, 1.2, te => te > T_GO);
+      fire.material.uniforms.grow.value = 0.55; smoke.material.uniforms.grow.value = 1.5; smoke.material.uniforms.alpha.value = 0.5;
+      if (dropped.visible) { // the spent stage keeps a little speed, then falls behind, tumbling
+        const tau = u - U_DROP; dropped.position.copy(bez(U_DROP + tau * 0.45)).addScaledVector(V(-0.6, -1, 0.3), tau * 3);
+        dropped.rotation.set(1.2 + tau * 5, tau * 3, 0.4 + tau * 7);
+      }
+      const shake = burning ? (1 - e) * 0.05 : 0;
+      cam.position.set(0, 2.5, 15).lerp(tmp.copy(p).add(V(-4, 1.5, 10)), e * 0.85).add(V(Math.sin(t * 71) * shake, Math.cos(t * 83) * shake, 0));
+      if (!burning) { cam.position.copy(P0).add(V(1.6 + t * 0.5, 0.9, 3.6)); cam.lookAt(look.copy(P0).add(V(0.4, 0.7, 0.2))); } // countdown: close on the rocket
+      const stay = dropped.visible ? span(t, 3.5, 4.2) : 0; // …then turns back to the piece that was thrown away
+      if (burning) cam.lookAt(look.set(0, 1.5, 0).lerp(p, e).lerp(dropped.position, stay)); cam.fov = (W < H ? 72 : 50) - stay * 22; cam.updateProjectionMatrix();
+    } else {
+      if (cam.fov !== (W < H ? 72 : 50)) { cam.fov = W < H ? 72 : 50; cam.updateProjectionMatrix(); }
+      const f = t - T3;
+      cam.position.set(12 - Math.sin(f * 0.15) * 4, 3, 34 - Math.min(f, 12) * 0.35); cam.lookAt(12, 0.4, -4);
+      const ph = ((t - LASER) % 2.564) / 2.564, u = ph < 0.5 ? ph * 2 : 2 - ph * 2; // out and back in the true 2.564 s
+      pulse.position.lerpVectors(E_HIT, M_HIT, u); pulse.scale.setScalar(1.5 + Math.sin(t * 20) * 0.2);
+      const k1 = clamp((ph - 0.5) / 0.16), k2 = clamp(ph / 0.2);
+      spark.scale.setScalar(ph >= 0.5 ? 1 + k1 * 5 : 0.001); spark.material.opacity = 1 - k1;
+      echo.lookAt(cam.position); echo.scale.setScalar(t > LASER + 2.5 ? 0.6 + k2 * 5 : 0.001); echo.material.opacity = 1 - k2;
+    }
+  }
+
+  if (B) {
+    if (cam.fov !== (W < H ? 72 : 50)) { cam.fov = W < H ? 72 : 50; cam.updateProjectionMatrix(); }
+    const o = span(t, T1, T2), ang = -0.5 + o * 1.0, rad = 11.5 - o * 2;
+    cam.position.set(Math.sin(ang) * rad, 2.8 - o * 0.6, Math.cos(ang) * rad + 1.5);
+    const lift = Math.max(0, t - 11.5), h = 2.6 * lift * lift; // the ascent stage: slow, then gone
+    cam.lookAt(0.2, 1.0 + Math.min(h, 9) * 0.45, 1.2);
+    // 1. The rocket stage arrives fast, hits far away, and throws up a ring of dust and a spray of rock
+    const fall = clamp((t - 4.9) / 0.7); stage.visible = t > 4.9 && fall < 1;
+    stage.position.set(IMPACT.x + (1 - fall) * 9, IMPACT.y + (1 - fall) * 20, IMPACT.z);
+    const tau = t - 5.6, s = clamp(tau / 2.6); shock.visible = tau > 0 && s < 1; shock.scale.setScalar(1 + s * 18); shock.material.opacity = 1 - s;
+    const fl = clamp(tau / 0.5); flash.visible = tau > 0 && fl < 1; flash.scale.setScalar(4 + fl * 22); flash.material.opacity = 1 - fl;
+    ejecta.visible = tau > 0 && tau < 5; ejecta.material.opacity = 1 - clamp((tau - 3) / 2);
+    if (ejecta.visible) { const a = ejGeo.attributes.position; for (let i = 0; i < EJ; i++) { const v = ejV[i], k = Math.min(tau, v[1] / 0.8); a.setXYZ(i, IMPACT.x + v[0] * k, IMPACT.y + v[1] * k - 0.8 * k * k, IMPACT.z + v[2] * k); } a.needsUpdate = true; }
+    if (tau > 0 && tau < 0.6) cam.position.y += Math.sin(t * 90) * 0.03 * (1 - tau / 0.6); // the ground rings
+    // 2. The astronaut watches, then walks from gift to gift. A dip to black at 11 s stands for "later".
+    walker.visible = t < 11.05; walk(t);
+    photo.scale.setScalar(Math.max(0.001, pop(t, 8.85))); statue.scale.setScalar(1.6 * Math.max(0.001, pop(t, 10.35)));
+    glint.scale.setScalar(t > 9.6 ? 0.2 + Math.pow(Math.max(0, Math.sin((t - 9.6) * 5)), 4) * 1.4 : 0.001);
+    // 3. Liftoff: the top half leaves, the bottom half stays
+    for (const m of ascent) m.o.position.copy(m.base).addScaledVector(m.up, h);
+    const going = lift > 0; liftGlow.visible = going && h < 30; liftGlow.position.set(0, 1.7 + h, 0); liftGlow.scale.setScalar(2.2 + Math.sin(t * 53) * 0.4);
+    liftRing.visible = liftDust.visible = going; const lr = clamp(lift / 1.8); liftRing.scale.setScalar(1 + lr * 9); liftRing.material.opacity = 0.7 * (1 - lr);
+    if (going) { emit(liftDust, t, 1.3, (te, out, d) => { const g = (te * 7.31) % 6.283; out.set(0, 0.3, 0); d.set(-Math.cos(g), -0.12, -Math.sin(g)); }, 1.2, 7, te => te > 11.5 && te < 12.5); liftDust.material.uniforms.grow.value = 1.2; liftDust.material.uniforms.alpha.value = 0.45; }
+    // Shots. The wide orbit above covers the impact; from here the camera cuts in.
+    const wp = walker.position;
+    if (t >= 7.0 && t < 8.55) { cam.position.set(wp.x - 2.3, 1.0, wp.z + 2.7); cam.lookAt(wp.x, 1.05, wp.z); }                          // tracking the walk, from in front
+    else if (t >= 8.55 && t < 9.45) { cam.position.set(photo.position.x - 1.2 + (t - 8.55) * 0.25, 0.42, photo.position.z + 1.5); cam.lookAt(wp.x, 0.75, wp.z); } // low close-up: the photo goes down
+    else if (t >= 9.45 && t < 11.05) { cam.position.set(4.9 - (t - 9.45) * 0.3, 1.5, 7.8); cam.lookAt(1.7, 0.9, 3.6); }                // medium: the statue, the mirror glinting
+    else if (t >= 11.05) { cam.position.set(4.4, 0.55, 6.0); cam.lookAt(0, 1.8 + Math.min(h, 16) * 0.55, 0); }                         // low angle: liftoff
+    if (going && lift < 0.9) { cam.position.x += Math.sin(t * 80) * 0.04 * (1 - lift / 0.9); cam.position.y += Math.cos(t * 67) * 0.03 * (1 - lift / 0.9); }
+  }
+
+  if (C) {
+    const d = span(t, T2, 17.6), rx = -6.5 + d * 5.5;
+    rover.position.set(rx, gy(rx, 2), 2); rover.rotation.z = Math.sin(rx * 6) * 0.015; rover.rotation.x = Math.sin(rx * 4.3) * 0.012;
+    wheels.forEach(w => { w.rotation.z = -rx / 0.17; });
+    head.rotation.y = Math.sin(t * 1.4) * 0.6 * (1 - storm);
+    tracks.forEach(m => { const len = rx + 7.2; m.scale.x = Math.max(0.01, len); m.position.set(-7.2 + len / 2, gy(rx - len / 2, m.userData.z) + 0.02, m.userData.z); m.material.opacity = 1; });
+    for (const m of cells) m.color.copy(CLEAN).lerp(DUSTY, storm);
+    // the parachute drifts down, touches, and the canopy sinks onto the ground
+    const fallC = span(t, T2 - 0.5, 15.4), hC = (1 - fallC) * 15, down = span(t, 15.4, 16.6);
+    chute.position.set(CH.x + (1 - fallC) * 5 + Math.sin(t * 1.3) * 0.5 * (1 - fallC), CH.y + hC, CH.z); chute.rotation.z = Math.sin(t * 1.7) * 0.14 * (1 - fallC);
+    canopy.rotation.z = down * 1.25; canopy.scale.set(1, 1 - down * 0.72, 1); lines.material.opacity = 0.7 * (1 - down);
+    const fallS = clamp((t - T2) / 0.9), eS = fallS * fallS; shield.position.set(SH.x + (1 - eS) * 3, SH.y + 0.1 + (1 - eS) * 22, SH.z); shield.rotation.set(0.3 + (1 - eS) * 4, 0, 0.2);
+    const th = clamp((t - T2 - 0.9) / 1.6); thud.scale.setScalar(1 + th * 7); thud.material.opacity = t > T2 + 0.9 ? 0.6 * (1 - th) : 0;
+    dust.position.x = (t * 9) % 40 - 20; dust.material.opacity = 0.1 + storm * 0.8; dust.material.size = 0.24 + storm * 0.34;
+    sunHalo.material.opacity = 0.6 * (1 - storm);
+    fog.near = 14 - storm * 11; fog.far = 150 - storm * 124;
+    const o = span(t, T2, T3);
+    cam.position.set(-8 + o * 9.5, 2.6 - o * 0.8, 10.5 - o * 2.5); cam.lookAt(look.set(-3, 2.2 - o * 1.4, -3).lerp(tmp.set(1.5, 0.8, -1), o)); // wide
+    if (t < 15.2) { cam.position.set(CH.x + 4, 0.9, CH.z + 10); cam.lookAt(chute.position.x, chute.position.y + 1.6, CH.z); }           // looking up: the parachute comes down
+    else if (t < 16.4) { cam.position.set(rx + 1.9, 0.38, 3.9); cam.lookAt(rx + 0.2, 0.5, 2); }                                         // wheel-level tracking shot
+    else if (t >= 18.5) { const k = span(t, 18.5, T3); cam.position.set(rx + 3.4 - k * 1.2, 1.3 - k * 0.3, 6.4 - k * 1.8); cam.lookAt(rx, 0.95, 2); } // slow push-in as it goes quiet
+    head.rotation.z = -span(t, 18.9, 20.0) * 0.55; // the camera mast bows
+  }
+
+  R.render(scene, cam);
+
+  // DOM layer
+  for (const g of TAGS) {
+    const k = g.set.visible ? pop(t, g.a) * (1 - span(t, g.b - 0.35, g.b)) : 0;
+    tmp.copy(g.pos()).project(cam);
+    g.el.style.opacity = k > 0.01 && tmp.z < 1 ? 1 : 0;
+    g.el.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * W}px, ${(-tmp.y * 0.5 + 0.5) * H}px) translate(-50%, calc(-100% - 16px)) scale(${k.toFixed(3)})`;
+  }
+  for (const c of TIMED) {
+    const k = span(rt, c.a, c.a + 0.6) * (1 - span(rt, c.b - 0.5, c.b));
+    c.el.style.opacity = k; c.el.style.transform = `translateY(${(1 - span(rt, c.a, c.a + 0.8)) * 22}px)`;
+    c.el.style.visibility = k ? 'visible' : 'hidden';
+  }
+  const line = NARR.findLast(n => rt >= n.at), on = line ? span(rt, line.at, line.at + 0.4) * (1 - span(rt, line.end - 0.5, line.end)) : 0; // subtitles
+  if (line && sub.textContent !== line.text) sub.textContent = line.text;
+  sub.style.opacity = on;
+  // Big type: the countdown, then the running tally of what was left
+  let bigText = '', bigK = 0, num = false;
+  if (rt >= 0.6 && rt < 3.3) { const i = Math.floor((rt - 0.6) / 0.9), f = (rt - 0.6) / 0.9 - i; bigText = String(3 - i); bigK = (1 - f) * (1 - f); big.style.transform = `scale(${1 + f * 0.5})`; }
+  else if (rt >= 60 && rt < 66.6) { const n = Math.round(213608 * span(rt, 60, 64)); bigText = `${n.toLocaleString('en-GB')} kg<small>left on the Moon and Mars</small>`; bigK = span(rt, 60, 60.5) * (1 - span(rt, 66, 66.6)); num = true; big.style.transform = 'translateY(-22vh)'; }
+  if (big.innerHTML !== bigText) big.innerHTML = bigText; big.style.opacity = bigK; big.classList.toggle('num', num);
+  fadeEl.style.opacity = Math.max(...[[T1, 0.35], [11.05, 0.18], [T2, 0.35], [T3, 0.35]].map(([c, w]) => 1 - Math.abs(t - c) / w), rt > 0 ? 1 - rt / 0.6 : 0, 0);
+  bar.style.transform = `scaleX(${clamp(rt / RT_END)})`;
+  skip.style.visibility = t > T3 ? 'hidden' : 'visible';
+}
+
+// ── Pacing: real seconds → scene seconds. Each beat gets the time its narration needs; the finale runs 1:1
+//    so the laser's 2.564 s round trip stays true. ──
+const WARP = [[0, 0], [3.4, 0.7], [11.5, 3.6], [13.3, 4.5], [20.5, 7.0], [30.5, 11.05], [37.5, 13.5], [51.5, 17.0], [59.5, 20.5]];
+const FIN = 59.5, LASER = 29.3; // real second the finale starts · scene second the laser first fires
+function warp(rt) {
+  for (let i = 1; i < WARP.length; i++) if (rt < WARP[i][0]) { const [a, sa] = WARP[i - 1], [b, sb] = WARP[i]; return sa + (sb - sa) * (rt - a) / (b - a); }
+  return 20.5 + rt - FIN;
+}
+
+// ── Narrator. If recorded clips exist at narration/01.mp3 … (one per script line, in order) they are played.
+//    Otherwise the browser's own speech voice reads the line, preferring the most natural voice installed. ──
+let speakOn = false, cue = 0, voice = null;
+const synth = window.speechSynthesis;
+const pickVoice = () => { const v = synth ? synth.getVoices().filter(v => /^en/i.test(v.lang)) : []; voice = ['Natural', 'Premium', 'Enhanced', 'Neural', 'Google UK English Male', 'Google UK English Female', 'Google US English', 'Daniel', 'Samantha'].map(n => v.find(x => x.name.includes(n))).find(Boolean) || v[0] || null; };
+if (synth) { pickVoice(); synth.addEventListener('voiceschanged', pickVoice); addEventListener('pagehide', () => synth.cancel()); }
+function narrate(rt) {
+  while (cue < NARR.length && rt >= NARR[cue].at) {
+    if (speakOn && rt - NARR[cue].at < 1.5) {
+      const clip = clips[cue];
+      if (clip.ok) { clip.currentTime = 0; clip.play().catch(() => {}); }
+      else if (synth) { const u = new SpeechSynthesisUtterance(NARR[cue].text); if (voice) u.voice = voice; u.rate = 0.95; synth.speak(u); }
+    }
+    cue++;
+  }
+}
+
+// ── Sound: all synthesised. Continuous beds follow scene time; one-shots fire when the clock crosses their moment. ──
+let ac, bed = {}, lastS = 0, lastRt = 0;
+function audioInit() {
+  ac = new AudioContext();
+  const buf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const noise = (type, freq, Q) => { const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = buf; s.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = Q; g.gain.value = 0; s.connect(f).connect(g).connect(ac.destination); s.start(); return g; };
+  bed.rumble = noise('lowpass', 170, 0.7); bed.wind = noise('bandpass', 480, 0.5);
+  const o = ac.createOscillator(); bed.drone = ac.createGain(); o.frequency.value = 55; bed.drone.gain.value = 0; o.connect(bed.drone).connect(ac.destination); o.start();
+}
+function tone(f0, f1, dur, vol) { const o = ac.createOscillator(), g = ac.createGain(), n = ac.currentTime; o.frequency.setValueAtTime(f0, n); o.frequency.exponentialRampToValueAtTime(f1, n + dur); g.gain.setValueAtTime(vol, n); g.gain.exponentialRampToValueAtTime(0.0001, n + dur); o.connect(g).connect(ac.destination); o.start(); o.stop(n + dur); }
+function sound(s, rt) {
+  if (!ac || ac.state !== 'running') { lastS = s; lastRt = rt; return; }
+  const set = (g, v) => g.gain.setTargetAtTime(v, ac.currentTime, 0.2), crossed = x => lastS < x && s >= x, storm = span(s, 17.2, 19.4);
+  set(bed.rumble, s > 0.7 && s < T1 ? 0.5 * (1 - span(s, 3.0, T1) * 0.8) : s > 11.5 && s < 13.3 ? 0.4 * (1 - span(s, 11.5, 13.3)) : 0);
+  set(bed.wind, s >= T2 && s < T3 ? (0.04 + storm * 0.3) * (1 - span(s, 19.7, T3)) : 0); // the storm rises, then silence
+  set(bed.drone, s < T2 || s >= T3 ? 0.06 : 0);
+  if (crossed(5.6)) { tone(75, 26, 3, 0.8); tone(196, 194, 6, 0.16); tone(293, 291, 5, 0.07); } // impact, and the Moon ringing
+  if (crossed(T2 + 0.9)) tone(60, 30, 1.2, 0.4);                                              // heat shield lands
+  const k = Math.floor((s - LASER) / 1.282), k0 = Math.floor((lastS - LASER) / 1.282);
+  if (s > LASER && k > k0) k % 2 ? tone(660, 660, 0.25, 0.05) : k && tone(1320, 1320, 1.6, 0.14); // out… and back
+  for (const c of [0.6, 1.5, 2.4]) if (lastRt < c && rt >= c) tone(880, 880, 0.18, 0.12); // countdown beeps
+  if (lastRt < 3.4 && rt >= 3.4) tone(110, 40, 1.5, 0.5);                                 // ignition
+  lastS = s; lastRt = rt;
+}
+
+const NARR = [...document.querySelectorAll('#script li')].map(li => ({ at: +li.dataset.at, text: li.textContent }));
+NARR.forEach((n, i) => { n.end = Math.min(NARR[i + 1] ? NARR[i + 1].at - 0.2 : 1e9, n.at + n.text.split(' ').length / 2.3 + 1.6); });
+const clips = NARR.map((n, i) => { const a = new Audio(); a.preload = 'auto'; a.oncanplaythrough = () => { a.ok = true; }; a.onerror = () => {}; a.src = `narration/${String(i + 1).padStart(2, '0')}.mp3`; return a; });
+const hush = () => { if (synth) synth.cancel(); clips.forEach(c => c.pause()); };
+const big = document.querySelector('#big'), sub = document.querySelector('#sub'), startEl = document.querySelector('#start'), snd = document.querySelector('#snd');
+
+let t0 = null;
+function begin(withSound) {
+  hush(); if (withSound) { if (!ac) audioInit(); ac.resume(); }
+  speakOn = withSound; snd.hidden = false; snd.textContent = withSound ? 'Sound on' : 'Sound off';
+  cue = 0; lastS = lastRt = 0; t0 = performance.now(); startEl.classList.add('gone');
+}
+document.querySelector('#play').onclick = () => begin(true);
+document.querySelector('#playMute').onclick = () => begin(false);
+document.querySelector('#again').onclick = () => begin(speakOn);
+snd.onclick = () => { speakOn = !speakOn; snd.textContent = speakOn ? 'Sound on' : 'Sound off'; if (speakOn) { if (!ac) audioInit(); ac.resume(); } else { if (ac) ac.suspend(); hush(); } };
+if (FREEZE !== null) startEl.classList.add('gone');
+(function loop(now) {
+  const rt = FREEZE !== null ? FREEZE : t0 === null ? 0 : (now - t0) / 1000, s = warp(rt);
+  if (t0 !== null) { narrate(rt); sound(s, rt); }
+  render(s, rt); requestAnimationFrame(loop);
+})(performance.now());
+}
+</script>
+</body>
+</html>

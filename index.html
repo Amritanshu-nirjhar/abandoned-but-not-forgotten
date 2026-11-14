@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abandoned but Not Forgotten</title>
+<meta name="description" content="A listening station for NASA hardware left on the Moon and Mars. Tune, wait, and find the one thing that still answers.">
+<meta name="theme-color" content="#08090a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="stars" aria-hidden="true"><i></i><i></i><i></i></div>
+<a class="skip" href="#log">Skip to the signal list</a>
+
+<header class="top">
+  <p class="mono">Listening station · Earth</p>
+  <div class="tools">
+    <a class="mono" href="film.html">▸ Watch the film</a>
+    <a class="mono" href="models.html">◈ 3D models</a>
+    <button id="sound" class="mono" aria-pressed="false">Sound off</button>
+    <button id="about-open" class="mono">About / Sources</button>
+  </div>
+</header>
+
+<main>
+  <h1>Abandoned<br>but Not Forgotten</h1>
+
+  <p class="sr-only">Objects left on two worlds. Most of them never transmitted. Some of them stopped. One still answers. Use the tuning dial, the seek buttons, or the signal list to find them.</p>
+  <p id="boot" class="mono" aria-hidden="true"><span id="bootline"></span><span class="cursor"></span></p>
+
+  <section id="console" hidden aria-label="Signal console">
+    <div class="band">
+      <div class="scope">
+        <canvas id="scope" aria-hidden="true"></canvas>
+        <input id="dial" type="range" min="0" max="100" step="0.1" value="0"
+               aria-label="Tuning dial. Nine signals between channel 0 and 100." aria-describedby="state">
+      </div>
+      <div class="readout mono">
+        <output id="ch" for="dial">CH 000.0</output>
+        <span id="count" aria-hidden="true"></span>
+        <div class="seek">
+          <button id="prev" class="mono" aria-label="Seek to previous signal">◂ Seek</button>
+          <button id="next" class="mono" aria-label="Seek to next signal">Seek ▸</button>
+        </div>
+      </div>
+      <p id="state" class="mono" role="status">Static. No carrier.</p>
+    </div>
+
+    <article id="rx" aria-live="polite"></article>
+
+    <nav id="log" aria-labelledby="log-h">
+      <div class="log-head">
+        <h2 id="log-h" class="mono">Signal log</h2>
+        <p id="tally" class="mono"></p>
+      </div>
+      <ol></ol>
+      <p id="coda" hidden>Nine logged. Eight will not answer again. One will, for as long as anyone points a light at it.</p>
+    </nav>
+
+    <section id="scale" aria-labelledby="scale-h">
+      <h2 id="scale-h" class="mono">The weight of it</h2>
+      <p class="big"><span id="kg"></span> kilograms</p>
+      <p class="lede">of human-made hardware now rests on the Moon, in <span id="nMoon"></span> catalogued objects. More than half of it is American. Each square below is one tonne.</p>
+      <div id="tonnes" role="img"></div>
+      <p class="key mono"><span><i class="sw a"></i>Five Saturn V third stages, crashed on purpose: a third of everything</span><span><i class="sw"></i>Everything else on the Moon</span><span><i class="sw m"></i>All of Mars: <span id="marsKg"></span> kg</span></p>
+      <p class="small">Totals are for every nation’s hardware, from the <a href="https://zenodo.org/records/24136681" target="_blank" rel="noopener">Zenodo inventory</a>. This station tells the story of <span id="nHere"></span> of those objects.</p>
+    </section>
+
+    <section id="heritage" aria-labelledby="her-h">
+      <h2 id="her-h">Junk, or heritage?</h2>
+      <div class="cols">
+        <p><b>We are going back.</b> The Artemis programme plans to land crews near the Moon’s south pole, and private landers are already arriving. New engines kick up dust that travels for kilometres and can sandblast whatever it reaches.</p>
+        <p><b>Almost nothing protects these sites.</b> By treaty the hardware still belongs to the country that sent it, but the ground it stands on belongs to no one. The United States asks its partners to keep their distance from the Apollo sites. There is no binding international rule.</p>
+        <p><b>Some of the rubbish is science.</b> The bleached flags, the waste bags, the cut-open Surveyor: each is a fifty-year experiment in what space does to the things we make. It only works if nobody disturbs it.</p>
+      </div>
+      <p class="ask">It was equipment when it left Earth, and litter when it was dropped. What should we call it now, and who gets to decide?</p>
+    </section>
+
+  </section>
+</main>
+
+<dialog id="about" aria-labelledby="about-h">
+  <form method="dialog"><button class="mono" aria-label="Close">Close ✕</button></form>
+  <h2 id="about-h">About this station</h2>
+  <p>Every object here is real, and so is every coordinate, mass, date and quotation. The console is the invention. Channel numbers are an index, not radio frequencies. Most of these objects never transmitted anything; some did and stopped; one was never heard from at all.</p>
+  <p>The waiting is not invented. Moon signals take the true one-way light time, 1.28 seconds. Mars signals show today’s true one-way light time, calculated from the two planets’ orbits, and compress it to a few seconds. The retroreflector return takes 2.56 seconds because that is how long light takes to go there and back.</p>
+  <h3 class="mono">Sources</h3>
+  <ul id="sources"></ul>
+  <h3 class="mono">Imagery</h3>
+  <p class="small">NASA imagery is in the public domain. Images are used unaltered; the console dims and desaturates them in the browser.</p>
+  <ul id="credits"></ul>
+</dialog>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
