@@ -120,6 +120,7 @@ ul.facts li { padding: .45rem 0; border-bottom: 1px solid rgb(255 255 255 / .09)
 .acts button, .acts a { font-size: .6875rem; padding: 0 .85rem; }
 @media (max-width: 59.99rem) { ul.facts { display: none; } .panel { max-height: 40vh; padding: 1rem 1rem .9rem; } .panel h1 { margin: .35rem 0 .5rem; } .nav { top: 30%; } }
 @media (min-width: 60rem) { #prevM { left: auto; right: 84px; } .nav { top: auto; bottom: 118px; margin: 0; } }
+.tools [aria-pressed="true"] { color: var(--sig); }
 </style>
 </head>
 <body data-world="moon">
@@ -134,6 +135,8 @@ ul.facts li { padding: .45rem 0; border-bottom: 1px solid rgb(255 255 255 / .09)
   <header class="top">
     <p class="mono">Hardware bay &nbsp;·&nbsp; <span id="count"></span></p>
     <div class="tools">
+      <button class="mono" id="true" aria-pressed="false">True size</button>
+      <button class="mono" id="tour" aria-pressed="false">▶ Tour</button>
       <a class="mono" href="index.html">◂ Listening station</a>
       <a class="mono" href="film.html">▸ Watch the film</a>
     </div>
@@ -227,9 +230,11 @@ flat(new THREE.PlaneGeometry(END + 6, 0.02), new THREE.MeshBasicMaterial({ color
 for (const [text, it] of [['MOON', items[0]], ['MARS', items.find(t => t.mars)]]) flat(new THREE.PlaneGeometry(9, 2.2), new THREE.MeshBasicMaterial({ map: label(text, 1024, 256, '300 210px Newsreader, Georgia, serif', '#3a3b40'), transparent: true, depthWrite: false }), it.x + 2.6, 0.003, -2.9);
 
 const halo = flat(new THREE.RingGeometry(1.98, 2.02, 96), new THREE.MeshBasicMaterial({ color: 0xffb84d, transparent: true, opacity: 0.7 }), 0, 0.007, 0); // marks where you are standing
+const UNITS_PER_M = 0.3; // in True size, one metre is this many scene units (the 7 m lunar module stands 2.1 tall)
+let trueSize = false, tourT = null;
 let cur = 0, mode = 'line', k = 0, camX = 0, camXT = 0;              // k: 0 on the line … 1 inspecting (eased)
 let selected = null, hovered = null, quest = null, score = 0, showSize = false;
-let dist = 3.7, yaw = 0.6, pitch = 0.16, zf = 1;
+let dist = 3.7, yaw = 0.6, pitch = 0.16, zf = 1, zb = 0;
 const focus = new V3(), focusT = new V3(), AMBER = new THREE.Color(0xffa733), tmp = new V3(), tmp2 = new V3();
 const it = () => items[cur];
 const eachMat = (m, f) => (Array.isArray(m.material) ? m.material : [m.material]).forEach(f);
@@ -301,7 +306,7 @@ function fill() {
 function hint() {
   const t = it();
   say(t.state === 'failed' ? '<p>NASA’s model could not be loaded. Check the connection and reload.</p>' : t.state !== 'ready' ? '<p class="mono">Loading NASA’s model…</p>'
-    : mode === 'line' ? '<p class="mono">Drag, scroll or use the arrows to walk the line</p>' : t.eT ? '<p>Now pick any part.</p>' : '<p>Tap the machine to take it apart.</p>');
+    : mode === 'line' ? (trueSize ? (t.mPerUnit ? '<p>Every machine is now at its real size. The orange figures are ten-year-olds.</p>' : '<p>Its size is not shown: this one is still in orbit.</p>') : '<p class="mono">Drag, scroll or use the arrows to walk the line</p>') : t.eT ? '<p>Now pick any part.</p>' : '<p>Tap the machine to take it apart.</p>');
 }
 function sync() {
   const t = it();
@@ -359,7 +364,14 @@ $('#size').onclick = () => {
   sync(); const s = SIZE[it().def.id];
   showSize ? say(`<h2>${s[1]} metres ${s[0] === 'y' ? 'tall' : 'wide'}</h2><p>The orange figure is a ten-year-old, ${CHILD} metres tall, standing next to it.</p>`) : hint();
 };
-$('#enter').onclick = () => go(cur, true); $('#back').onclick = () => go(cur, false);
+// True size: every machine rescales to its real relative size (they are all loaded first).
+$('#true').onclick = ev => { trueSize = !trueSize; ev.currentTarget.setAttribute('aria-pressed', trueSize); if (trueSize) { items.forEach((_, i) => ensure(i)); if (mode !== 'line') go(cur, false); } hint(); };
+// Tour: walk the line hands-free. Any touch or key stops it.
+function tour(on) { clearInterval(tourT); tourT = on ? setInterval(() => go((cur + 1) % items.length, false), 4800) : null; $('#tour').setAttribute('aria-pressed', !!on); $('#tour').textContent = on ? '■ Stop tour' : '▶ Tour'; if (on) go(cur, false); }
+$('#tour').onclick = () => tour(!tourT);
+canvas.addEventListener('pointerdown', () => tourT && tour(false)); addEventListener('keydown', () => tourT && tour(false));
+$('#enter').onclick = () => { tour(false); go(cur, true); };
+$('#back').onclick = () => go(cur, false);
 $('#prevM').onclick = () => go(cur - 1); $('#nextM').onclick = () => go(cur + 1);
 
 // ── Pointer ──
@@ -428,14 +440,16 @@ if (R) (function loop() {
     const eNow = m.e * 1000 + (m === t && selected ? 1 : 0);
     if (eNow !== m.lastE) { m.lastE = eNow; for (const o of m.meshes) o.position.copy(o.userData.base).addScaledVector(o.userData.unit, m.e * (m === t && o.userData.key === selected ? 1.3 : 1)); }
     if (!reduce && !(m === t && mode === 'inspect')) m.wrap.rotation.y += 0.004;
-    m.child.visible = m === t && showSize && m.e < 0.3;
+    const sT = trueSize && mode === 'line' && m.mPerUnit ? UNITS_PER_M * m.mPerUnit : 1, sc = m.wrap.scale.x + (sT - m.wrap.scale.x) * ease; m.wrap.scale.setScalar(Math.abs(sc - sT) < 0.001 ? sT : sc);
+    m.child.visible = (m === t && showSize && m.e < 0.3) || (trueSize && mode === 'line' && m.mPerUnit > 0);
   }
   // camera: blend between the walking view and an orbit around the current machine (or its selected part)
   selected && t.parts[selected] ? where(t, t.parts[selected], focusT) : focusT.set(t.x, t.h / 2 + t.lift, 0);
   k < 0.02 ? focus.copy(focusT) : focus.lerp(focusT, ease); zf += ((selected ? 0.62 : 1) - zf) * ease;
-  const D = dist * (1 + Math.min(t.e, 1) * 0.45) * zf, back = wide ? 7.2 : 9.5;
+  const big = trueSize && mode === 'line' ? 1 : 0; zb += (big - zb) * ease; // True size: step back and look higher, some of these are tall
+  const D = dist * (1 + Math.min(t.e, 1) * 0.45) * zf, back = (wide ? 7.2 : 9.5) + zb * 4;
   tmp.set(camX, 1.5, back).lerp(tmp2.set(focus.x + Math.sin(yaw) * Math.cos(pitch) * D, focus.y + Math.sin(pitch) * D, focus.z + Math.cos(yaw) * Math.cos(pitch) * D), k); cam.position.copy(tmp);
-  tmp.set(camX, 0.95, 0).lerp(focus, k); cam.lookAt(tmp);
+  tmp.set(camX, 0.95 + zb * 1.1, 0).lerp(focus, k); cam.lookAt(tmp);
   wide ? cam.setViewOffset(W, H, -W * 0.15 * k, -H * 0.06 * (1 - k), W, H) : cam.setViewOffset(W, H, 0, H * 0.2, W, H); cam.updateProjectionMatrix(); // keep the model clear of the text
   halo.position.x += (t.x - halo.position.x) * ease; halo.material.opacity = 0.7 * (1 - Math.min(1, t.e));
   key.position.set(tmp.x + 4, 6, 5); key.target.position.set(tmp.x, 0, 0);

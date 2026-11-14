@@ -240,7 +240,8 @@ const engineGlow = sprite(rocket, 0xffc27a); engineGlow.position.z = -1.5;
 const fire = plume(S, 140, 0xfff1c9, 0xff7a1e, true), smoke = plume(S, 420, 0xffd9a8, 0xcfd2d8, false);
 const P0 = V(1.2, 5.1, 1.5), P1 = V(9, 15, 8), P2 = V(22.2, 5.2, -6.6);
 const bez = u => V(0, 0, 0).addScaledVector(P0, (1 - u) * (1 - u)).addScaledVector(P1, 2 * (1 - u) * u).addScaledVector(P2, u * u);
-const T_GO = 0.7, uAt = t => { const x = clamp((t - T_GO) / 3.8); return x * x * (2 - x) * 0.5 + x * 0.5; }; // slow off the pad, then steady
+const T_GO = 0.7, T_CUT = 2.3; // ignition · the cut from the launch pad to space (scene seconds)
+const uAt = t => 0.1 + 0.9 * clamp((t - T_CUT) / 2.6); // in space the rocket is already clear of Earth
 const U_DROP = 0.4, dropped = model('s-ivb', S, 0.085, [0, 0, 0]); // a spent stage, let go on the way up
 
 const E_HIT = MOON.clone().normalize().multiplyScalar(5.05), M_HIT = MOON.clone().addScaledVector(MOON.clone().normalize(), -1.55);
@@ -248,6 +249,26 @@ const beam = add(S, cyl(0.06, 0.06, E_HIT.distanceTo(M_HIT), 8), glow(0x6dff8a, 
 beam.quaternion.setFromUnitVectors(V(0, 1, 0), M_HIT.clone().sub(E_HIT).normalize());
 const pulse = sprite(S, 0xb6ffc6), spark = sprite(S, 0xbfffd0); spark.position.copy(M_HIT);
 const echo = add(S, new THREE.RingGeometry(0.5, 0.62, 40), glow(0x6dff8a, { side: THREE.DoubleSide }), E_HIT.toArray());
+
+// ───────── LAUNCH PAD ─────────
+const Lp = group(scene), DAY = new THREE.Color('#7fb2e8'), HAZE = new THREE.Color('#cfe0ee');
+add(Lp, new THREE.PlaneGeometry(3000, 3000), mat(0x4f6142, { roughness: 1, envMapIntensity: 0.2 })).rotation.x = -Math.PI / 2;                       // scrubland to the horizon
+add(Lp, cyl(6.5, 6.5, 0.12, 48), mat(0x8f8e88, { roughness: 0.9 }), [0, 0.06, 0]);                                                // concrete apron
+add(Lp, box(3.4, 0.6, 3.4), mat(0x55585e, { roughness: 0.7, metalness: 0.4 }), [0, 0.3, 0]);                                   // launch platform
+add(Lp, box(1.2, 0.5, 9), mat(0x24262a, { roughness: 1 }), [0, 0.05, 5.5]);                                                     // flame trench
+const tower = group(Lp, [-2.2, 0.6, 0]), RED = mat(0x9a3324, { roughness: 0.6, metalness: 0.3 });
+for (const [x, z] of [[-0.45, -0.45], [0.45, -0.45], [-0.45, 0.45], [0.45, 0.45]]) add(tower, box(0.09, 8.4, 0.09), RED, [x, 4.2, z]);
+for (let y = 0.6; y < 8.5; y += 1.3) { add(tower, box(0.99, 0.07, 0.07), RED, [0, y, -0.45]); add(tower, box(0.99, 0.07, 0.07), RED, [0, y, 0.45]); add(tower, box(0.07, 0.07, 0.99), RED, [-0.45, y, 0]); add(tower, box(0.07, 0.07, 0.99), RED, [0.45, y, 0]); const d = add(tower, box(1.5, 0.05, 0.05), RED, [0, y + 0.65, 0.45]); d.rotation.z = 0.86; }
+add(tower, box(0.2, 1.6, 0.2), RED, [0, 9.2, 0]);
+const armsL = [2.2, 4.4, 6.3].map(y => { const g = group(tower, [0.45, y, 0]); add(g, box(1.5, 0.12, 0.3), RED, [0.75, 0, 0]); return g; });  // swing arms: they let go at ignition
+const padRocket = group(Lp); add(padRocket, cyl(0.42, 0.42, 5.2, 24), WHITE, [0, 2.6, 0]); add(padRocket, new THREE.ConeGeometry(0.3, 1.2, 24), WHITE, [0, 5.8, 0]);
+swap('Saturn V/Saturn V.glb', padRocket, 6.6, 'y');
+const padFlame = add(Lp, new THREE.ConeGeometry(0.5, 4.2, 20, 1, true), glow(0xff8a2a, { blending: THREE.AdditiveBlending, opacity: 0.9, side: THREE.DoubleSide })); padFlame.rotation.x = Math.PI;
+const padCore = add(Lp, new THREE.ConeGeometry(0.26, 2.6, 16, 1, true), glow(0xfff6d8, { blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); padCore.rotation.x = Math.PI;
+const padGlow = sprite(Lp, 0xff8c2e, { opacity: 0.75 }), padFire = plume(Lp, 180, 0xfff1c9, 0xff7a1e, true), padSmoke = plume(Lp, 560, 0xffe9cf, 0xaeaba5, false);
+Lp.traverse(o => { if (o.isMesh && o.material.isMeshStandardMaterial) o.castShadow = o.receiveShadow = true; });
+const climb = t => 23 * Math.max(0, t - T_GO) ** 2.2;       // height of the rocket: heavy and slow at first
+const ENV_EARTH = ENV(R, '#9cc4ff', '#6b6f66');
 
 // A ridgeline: a strip whose top edge is layered noise. `mesa` clips it flat-topped (Mars); without it the
 // hills stay rounded, like the old lunar mountains. yRef keeps the strip just above the curved horizon.
@@ -407,7 +428,7 @@ function resize() {
   W = innerWidth; H = innerHeight;
   const d = Math.min(devicePixelRatio || 1, 2); R.setPixelRatio(d); R.setSize(W, H, false);
   cam.aspect = W / H; cam.fov = W < H ? 72 : 50; cam.updateProjectionMatrix();
-  for (const p of [fire, smoke, liftDust]) p.material.uniforms.px.value = H * d * 1.1;
+  for (const p of [fire, smoke, liftDust, padFire, padSmoke]) p.material.uniforms.px.value = H * d * 1.1;
 }
 addEventListener('resize', resize); resize();
 
@@ -426,14 +447,35 @@ function emit(p, t, life, from, spread, back, on) {
 const nozzle = (te, out, d) => { const u = uAt(te); out.copy(bez(u)); d.copy(bez(Math.min(1, u + 0.01))).sub(out).normalize(); out.addScaledVector(d, -1.45); };
 
 function render(t, rt) { // t: scene time (drives the animation) · rt: real seconds since Play (drives words and the end card)
-  const A = t < T1 || t >= T3, B = t >= T1 && t < T2, C = t >= T2 && t < T3;
-  S.visible = A; Mn.visible = B; Ms.visible = C; stars.visible = sky.visible = !C;
+  const PAD = t < T_CUT, A = (t >= T_CUT && t < T1) || t >= T3, B = t >= T1 && t < T2, C = t >= T2 && t < T3;
+  const alt = PAD ? clamp(climb(t) / 42) : 1; // 0 on the ground … 1 where the sky has gone black
+  Lp.visible = PAD; S.visible = A; Mn.visible = B; Ms.visible = C; stars.visible = !C && alt > 0.35; sky.visible = !C && !PAD; stars.material.opacity = span(alt, 0.35, 1);
   const storm = span(t, 17.2, 19.4);
-  scene.fog = C ? fog : null; scene.environment = C ? ENV_MARS : ENV_SPACE;
-  scene.background.copy(C ? tmpC.copy(SKY).lerp(STORM, storm) : BLACK); fog.color.copy(scene.background);
-  amb.intensity = B ? 0.1 : C ? 0.42 - storm * 0.1 : 0.12; sun.intensity = C ? 1.9 - storm * 1.5 : B ? 2.0 : 1.7;
-  B ? sun.position.set(-10, 4.2, 5) : C ? sun.position.set(9, 5.5, -4) : sun.position.set(6, 9, 7); // low Sun on the Moon and Mars: long shadows
+  scene.fog = C || PAD ? fog : null; scene.environment = C ? ENV_MARS : PAD ? ENV_EARTH : ENV_SPACE;
+  scene.background.copy(C ? tmpC.copy(SKY).lerp(STORM, storm) : PAD ? tmpC.copy(DAY).lerp(BLACK, alt) : BLACK); fog.color.copy(PAD ? tmpC.copy(HAZE).lerp(BLACK, alt) : scene.background);
+  if (PAD) { fog.near = 60; fog.far = 900; }
+  amb.intensity = B ? 0.1 : C ? 0.42 - storm * 0.1 : PAD ? 0.5 : 0.12; sun.intensity = C ? 1.9 - storm * 1.5 : B ? 2.0 : 1.7;
+  B ? sun.position.set(-10, 4.2, 5) : C ? sun.position.set(9, 5.5, -4) : PAD ? sun.position.set(-7, 9, 6) : sun.position.set(6, 9, 7); // low Sun on the Moon and Mars: long shadows
   sun.color.set(C ? 0xffe6cc : 0xffffff); if (C) marsSky.material.color.copy(WHITE_C).lerp(STORM_TINT, storm);
+
+  if (PAD) {
+    if (cam.fov !== (W < H ? 72 : 50)) { cam.fov = W < H ? 72 : 50; cam.updateProjectionMatrix(); }
+    const burning = t > T_GO, y = climb(t), base = 0.6 + y, since = t - T_GO;
+    padRocket.position.y = base; armsL.forEach((g, i) => { g.rotation.y = -span(t, T_GO - 0.05, T_GO + 0.35 + i * 0.05) * 1.5; });
+    padFlame.visible = padCore.visible = padGlow.visible = burning;
+    const fl = 0.85 + rnd() * 0.3, grow = span(t, T_GO, T_GO + 0.25); // the flame lengthens as the engines come up to thrust
+    padFlame.scale.set(1 + rnd() * 0.15, fl * grow, 1 + rnd() * 0.15); padFlame.position.set(0, base - 2.1 * fl * grow, 0);
+    padCore.scale.set(1, fl * grow, 1); padCore.position.set(0, base - 1.3 * fl * grow, 0);
+    padGlow.position.set(0, base - 0.4, 0.5); padGlow.scale.setScalar((2.8 + Math.sin(t * 61) * 0.4) * grow);
+    // fire straight down from the engines; smoke that hits the ground and rolls outward, then trails the rocket up
+    emit(padFire, t, 0.28, (te, out, d) => { out.set(0, 0.6 + climb(te) - 0.3, 0); d.set(0, 1, 0); }, 1.1, 5, te => te > T_GO);
+    emit(padSmoke, t, 2.2, (te, out, d) => { const h = climb(te), g = (te * 97.13) % 6.283; if (h < 5) { out.set(0, 0.5, 0); d.set(-Math.cos(g), -0.1 - h * 0.03, -Math.sin(g)); } else { out.set(0, 0.6 + h - 2.5, 0); d.set(0, 1, 0); } }, 5, 11, te => te > T_GO - 0.08);
+    padFire.material.uniforms.grow.value = 1.3; padSmoke.material.uniforms.grow.value = 4.2; padSmoke.material.uniforms.alpha.value = 0.75;
+    // camera: low and close for the countdown; then it shakes, pulls back and tilts up to follow
+    const sh = burning ? 0.09 * Math.max(0.25, 1 - since * 0.7) : 0, pull = span(t, T_GO, T_CUT);
+    cam.position.set(5.2 - t * 0.6 + pull * 6 + Math.sin(t * 73) * sh, 1.1 + y * 0.32 + Math.cos(t * 89) * sh, 8.5 + pull * 9 + y * 0.12);
+    cam.lookAt(0, 3.4 + y * 0.92, 0);
+  }
 
   if (A) {
     earth.rotation.y = t * 0.2; clouds.rotation.y = t * 0.24; moonS.rotation.y = 2 + t * 0.04;
@@ -441,18 +483,17 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
     rocket.visible = fire.visible = smoke.visible = launch; dropped.visible = launch && uAt(t) > U_DROP;
     beam.visible = pulse.visible = spark.visible = echo.visible = !launch && t > LASER;
     if (launch) {
-      const u = uAt(t), e = span(t, T_GO, T1), p = bez(u), burning = t > T_GO;
+      const u = uAt(t), e = span(t, T_CUT, T1), p = bez(u), burning = true;
       rocket.position.copy(p); rocket.lookAt(bez(Math.min(1, u + 0.02))); hull.rotation.y = t * 0.6;
       engineGlow.visible = burning; engineGlow.scale.setScalar(1.6 + Math.sin(t * 47) * 0.25 + Math.sin(t * 31) * 0.15);
-      emit(fire, t, 0.22, nozzle, 0.5, 1.4, te => te > T_GO); emit(smoke, t, 2.4, nozzle, 2.6, 1.2, te => te > T_GO);
-      fire.material.uniforms.grow.value = 0.55; smoke.material.uniforms.grow.value = 1.5; smoke.material.uniforms.alpha.value = 0.5;
+      emit(fire, t, 0.22, nozzle, 0.5, 1.4, te => te > T_CUT); emit(smoke, t, 1.6, nozzle, 1.6, 1.2, te => te > T_CUT);
+      fire.material.uniforms.grow.value = 0.55; smoke.material.uniforms.grow.value = 1.1; smoke.material.uniforms.alpha.value = 0.28; // thin in vacuum
       if (dropped.visible) { // the spent stage keeps a little speed, then falls behind, tumbling
         const tau = u - U_DROP; dropped.position.copy(bez(U_DROP + tau * 0.45)).addScaledVector(V(-0.6, -1, 0.3), tau * 3);
         dropped.rotation.set(1.2 + tau * 5, tau * 3, 0.4 + tau * 7);
       }
       const shake = burning ? (1 - e) * 0.05 : 0;
       cam.position.set(0, 2.5, 15).lerp(tmp.copy(p).add(V(-4, 1.5, 10)), e * 0.85).add(V(Math.sin(t * 71) * shake, Math.cos(t * 83) * shake, 0));
-      if (!burning) { cam.position.copy(P0).add(V(1.6 + t * 0.5, 0.9, 3.6)); cam.lookAt(look.copy(P0).add(V(0.4, 0.7, 0.2))); } // countdown: close on the rocket
       const stay = dropped.visible ? span(t, 3.5, 4.2) : 0; // …then turns back to the piece that was thrown away
       if (burning) cam.lookAt(look.set(0, 1.5, 0).lerp(p, e).lerp(dropped.position, stay)); cam.fov = (W < H ? 72 : 50) - stay * 22; cam.updateProjectionMatrix();
     } else {
@@ -545,7 +586,7 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
   if (rt >= 0.6 && rt < 3.3) { const i = Math.floor((rt - 0.6) / 0.9), f = (rt - 0.6) / 0.9 - i; bigText = String(3 - i); bigK = (1 - f) * (1 - f); big.style.transform = `scale(${1 + f * 0.5})`; }
   else if (rt >= 60 && rt < 66.6) { const n = Math.round(213608 * span(rt, 60, 64)); bigText = `${n.toLocaleString('en-GB')} kg<small>left on the Moon and Mars</small>`; bigK = span(rt, 60, 60.5) * (1 - span(rt, 66, 66.6)); num = true; big.style.transform = 'translateY(-22vh)'; }
   if (big.innerHTML !== bigText) big.innerHTML = bigText; big.style.opacity = bigK; big.classList.toggle('num', num);
-  fadeEl.style.opacity = Math.max(...[[T1, 0.35], [11.05, 0.18], [T2, 0.35], [T3, 0.35]].map(([c, w]) => 1 - Math.abs(t - c) / w), rt > 0 ? 1 - rt / 0.6 : 0, 0);
+  fadeEl.style.opacity = Math.max(...[[T_CUT, 0.12], [T1, 0.35], [11.05, 0.18], [T2, 0.35], [T3, 0.35]].map(([c, w]) => 1 - Math.abs(t - c) / w), rt > 0 ? 1 - rt / 0.6 : 0, 0);
   bar.style.transform = `scaleX(${clamp(rt / RT_END)})`;
   skip.style.visibility = t > T3 ? 'hidden' : 'visible';
 }
