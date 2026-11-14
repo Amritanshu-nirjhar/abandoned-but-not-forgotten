@@ -26,14 +26,13 @@ h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035
 .cap b { font-weight: 500; color: var(--sig); }
 
 /* Cards pinned to 3D objects */
-.tag { position: absolute; left: 0; top: 0; width: clamp(118px, 17vw, 190px); box-shadow: 0 12px 40px rgb(0 0 0 / .6); transform-origin: 50% 100%; background: rgb(8 9 13 / .9); border: 1px solid rgb(255 255 255 / .35); padding: 6px; will-change: transform; }
-.tag::after { content: ""; position: absolute; left: 50%; bottom: -15px; width: 1px; height: 14px; background: #fff; }
+.tag { position: absolute; left: max(16px, 4vw); top: 11vh; width: clamp(128px, 20vw, 230px); box-shadow: 0 12px 40px rgb(0 0 0 / .6); transform-origin: 0 0; background: rgb(8 9 13 / .9); border: 1px solid rgb(255 255 255 / .35); padding: 6px; will-change: transform; }
 .tag img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
 .tag span { display: block; font: 500 clamp(.85rem, 1.5vw, 1.1rem)/1.2 var(--serif); padding: 7px 3px 2px; }
 
-.end { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; padding: 11vh 16px 7vh; }
+.end { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; padding: 7vh 16px 7vh; }
 .end > * { opacity: 0; }
-.end h2 { font: 300 clamp(2.4rem, 9.5vw, 6rem)/1 var(--serif); letter-spacing: -.03em; margin: 0; text-shadow: 0 4px 40px #000; }
+.end h2 { font: 300 clamp(2rem, 6.5vw, 4.6rem)/1 var(--serif); letter-spacing: -.03em; margin: 0; text-shadow: 0 4px 40px #000; }
 .end p { font-size: clamp(1.05rem, 3.4vw, 1.5rem); line-height: 1.3; max-width: 27em; margin: 0 0 1.25rem; text-shadow: 0 2px 16px #000; }
 .actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
 
@@ -46,7 +45,7 @@ h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035
 #script { display: none; }
 #big { position: absolute; inset: 0; margin: 0; display: grid; place-content: center; text-align: center; font: 300 clamp(5rem, 26vw, 16rem)/1 var(--serif); letter-spacing: -.04em; text-shadow: 0 4px 60px #000; font-variant-numeric: tabular-nums; }
 #big small { display: block; font: 500 clamp(.8rem, 2vw, 1.1rem)/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--sig); }
-#big.num { font-size: clamp(2.6rem, 11vw, 7.5rem); }
+#big.num { font-size: clamp(2.4rem, 8vw, 6rem); }
 .still #big { display: none; }
 .still .start { display: none; }
 .still #script { display: block; list-style: none; padding: 0; max-width: 30em; margin: 2rem auto; font-size: 1.25rem; line-height: 1.5; }
@@ -268,6 +267,14 @@ const padFlame = add(Lp, new THREE.ConeGeometry(0.5, 4.2, 20, 1, true), glow(0xf
 const padCore = add(Lp, new THREE.ConeGeometry(0.26, 2.6, 16, 1, true), glow(0xfff6d8, { blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); padCore.rotation.x = Math.PI;
 const padGlow = sprite(Lp, 0xff8c2e, { opacity: 0.75 }), padFire = plume(Lp, 180, 0xfff1c9, 0xff7a1e, true), padSmoke = plume(Lp, 560, 0xffe9cf, 0xaeaba5, false);
 Lp.traverse(o => { if (o.isMesh && o.material.isMeshStandardMaterial) o.castShadow = o.receiveShadow = true; });
+// Launch-day sky: deep blue overhead paling to haze at the horizon, a low sun and a few soft clouds. All of it thins to black as the rocket climbs.
+const padSky = add(Lp, ball(900, 32), new THREE.MeshBasicMaterial({ side: THREE.BackSide, fog: false, depthWrite: false, transparent: true, map: tex(8, 256, (g, w, h) => { const r = g.createLinearGradient(0, 0, 0, h); r.addColorStop(0, '#16407f'); r.addColorStop(0.3, '#3f7fcb'); r.addColorStop(0.47, '#b9d6ee'); r.addColorStop(0.5, '#e6eef2'); r.addColorStop(1, '#e6eef2'); g.fillStyle = r; g.fillRect(0, 0, w, h); }) }));
+padSky.renderOrder = -2;
+const padAir = [sprite(Lp, 0xfff3d6, { opacity: 0.9, fog: false })]; padAir[0].position.set(330, 150, -700); padAir[0].scale.setScalar(120);
+for (let i = 0; i < 7; i++) for (let j = 0; j < 4; j++) { // each cloud is four overlapping soft puffs
+  const c = sprite(Lp, 0xffffff, { blending: THREE.NormalBlending, opacity: 0.85, fog: false }), w = 95 + ((i * 37 + j * 13) % 60);
+  c.position.set(-440 + i * 140 + j * 34, 90 + ((i * 53) % 130) + (j % 2) * 9, -520 - ((i * 71) % 160)); c.scale.set(w, w * 0.32, 1); padAir.push(c);
+}
 const climb = t => 23 * Math.max(0, t - T_GO) ** 2.2;       // height of the rocket: heavy and slow at first
 const ENV_EARTH = ENV(R, '#9cc4ff', '#6b6f66');
 
@@ -458,7 +465,7 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
   const storm = span(t, 17.2, 19.4);
   scene.fog = C || PAD ? fog : null; scene.environment = C ? ENV_MARS : PAD ? ENV_EARTH : ENV_SPACE;
   scene.background.copy(C ? tmpC.copy(SKY).lerp(STORM, storm) : PAD ? tmpC.copy(DAY).lerp(BLACK, alt) : BLACK); fog.color.copy(PAD ? tmpC.copy(HAZE).lerp(BLACK, alt) : scene.background);
-  if (PAD) { fog.near = 60; fog.far = 900; }
+  if (PAD) { fog.near = 60; fog.far = 900; padSky.material.opacity = 1 - alt; padAir.forEach((c, i) => { c.material.opacity = (i ? 0.85 : 0.9) * (1 - alt); }); }
   amb.intensity = B ? 0.1 : C ? 0.42 - storm * 0.1 : PAD ? 0.5 : 0.12; sun.intensity = C ? 1.9 - storm * 1.5 : B ? 2.0 : 1.7;
   B ? sun.position.set(-10, 4.2, 5) : C ? sun.position.set(9, 5.5, -4) : PAD ? sun.position.set(-7, 9, 6) : sun.position.set(6, 9, 7); // low Sun on the Moon and Mars: long shadows
   sun.color.set(C ? 0xffe6cc : 0xffffff); if (C) marsSky.material.color.copy(WHITE_C).lerp(STORM_TINT, storm);
@@ -574,9 +581,8 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
   // DOM layer
   for (const g of TAGS) {
     const k = g.set.visible ? pop(t, g.a) * (1 - span(t, g.b - 0.35, g.b)) : 0;
-    tmp.copy(g.pos()).project(cam);
-    g.el.style.opacity = k > 0.01 && tmp.z < 1 ? 1 : 0;
-    g.el.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * W}px, ${(-tmp.y * 0.5 + 0.5) * H}px) translate(-50%, calc(-100% - 16px)) scale(${k.toFixed(3)})`;
+    g.el.style.opacity = k > 0.01 ? 1 : 0;
+    g.el.style.transform = `rotate(-3deg) scale(${k.toFixed(3)})`;
   }
   for (const c of TIMED) {
     const k = span(rt, c.a, c.a + 0.6) * (1 - span(rt, c.b - 0.5, c.b));
@@ -588,7 +594,7 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
   sub.style.opacity = on;
   // Big type: the running tally of what was left
   let bigText = '', bigK = 0, num = false;
-  if (rt >= 67.5 && rt < 73.1) { const n = Math.round(213608 * span(rt, 67.5, 71)); bigText = `${n.toLocaleString('en-GB')} kg<small>left on the Moon and Mars</small>`; bigK = span(rt, 67.5, 68) * (1 - span(rt, 72.5, 73.1)); num = true; big.style.transform = 'translateY(-22vh)'; }
+  if (rt >= 67.5 && rt < 73.1) { const n = Math.round(213608 * span(rt, 67.5, 71)); bigText = `${n.toLocaleString('en-GB')} kg<small>left on the Moon and Mars</small>`; bigK = span(rt, 67.5, 68) * (1 - span(rt, 72.5, 73.1)); num = true; big.style.transform = 'translateY(-35vh)'; }
   if (big.innerHTML !== bigText) big.innerHTML = bigText; big.style.opacity = bigK; big.classList.toggle('num', num);
   fadeEl.style.opacity = Math.max(...[[T_CUT, 0.12], [T1, 0.35], [11.05, 0.18], [T2, 0.35], [T3, 0.35]].map(([c, w]) => 1 - Math.abs(t - c) / w), rt > 0 ? 1 - rt / 0.6 : 0, 0);
   bar.style.transform = `scaleX(${clamp(rt / RT_END)})`;
