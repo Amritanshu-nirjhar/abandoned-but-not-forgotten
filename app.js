@@ -114,7 +114,7 @@ function lock(s) {
   rx.style.setProperty('--life', s.life);
   rx.innerHTML = `
     <header>
-      <p class="kicker mono">${s.world} · ${chLabel(s.ch)}</p>
+      <p class="kicker mono">${CHAPTERS.find(c => c.id === s.chapter).title} · ${s.world} · ${chLabel(s.ch)}</p>
       <h2>${s.title}</h2>
     </header>
     <figure>
@@ -132,6 +132,7 @@ function lock(s) {
       <p class="sr-only">${s.narrative}</p>
       <p class="narr" aria-hidden="true"></p>
       <p class="status mono"><span class="dot"></span>${s.status}</p>
+      <p class="links mono">${s.model ? `<a href="models.html#${s.model}">See it in 3D ▸</a>` : ''}<a href="#map" data-pin="${s.id}">Show on the map ▸</a></p>
       ${alive ? `
       <div class="live">
         <p class="mono">Farther from Earth than on the day they were placed</p>
@@ -180,11 +181,35 @@ function live(s) {
   };
 }
 
+// ── Chapters under the dial ──
+$('#chapters').append(...CHAPTERS.map(c => { const el = document.createElement('span'); el.textContent = c.title; el.style.flexGrow = SIGNALS.filter(s => s.chapter === c.id).length; return el; }));
+
+// ── Map: a pin per object on a flat map of each world. Pins that share a spot fan out around it. ──
+const pins = [];
+for (const world of ['Moon', 'Mars']) {
+  const fig = document.createElement('figure'), box = document.createElement('div'), img = new Image(), here = SIGNALS.filter(s => s.world === world), seen = {};
+  img.alt = `Map of ${world}`; img.loading = 'lazy'; img.src = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(MAPS[world])}?width=1280`;
+  box.className = 'mapbox'; box.append(img);
+  for (const s of here) {
+    const key = Math.round(s.lat / 3) + ',' + Math.round(s.lon / 3), n = seen[key] = (seen[key] || 0) + 1, a = n * 2.4, r = n > 1 ? 9 + n * 2.5 : 0; // the nth pin at a spot steps out along a spiral
+    const p = document.createElement('button'); p.className = 'mpin ' + s.state; p.style.cssText = `left:${(s.lon + 180) / 3.6}%;top:${(90 - s.lat) / 1.8}%;--dx:${(Math.cos(a) * r).toFixed(1)}px;--dy:${(Math.sin(a) * r).toFixed(1)}px;--life:${s.life}`;
+    p.setAttribute('aria-label', `${s.title}, ${s.place}`); p.innerHTML = '<span></span>'; p.firstChild.textContent = s.title;
+    p.onclick = () => goto(s.ch, true); box.append(p); pins.push([s, p]);
+  }
+  const cap = document.createElement('figcaption'); cap.className = 'mono'; cap.textContent = `${world} · ${here.length} objects`;
+  fig.append(box, cap); $('.maps').append(fig);
+}
+rx.addEventListener('click', ev => { const id = ev.target.dataset && ev.target.dataset.pin; if (id) { const p = pins.find(([s]) => s.id === id)[1]; setTimeout(() => p.focus({ preventScroll: true }), 50); } });
+
 // ── Log: the non-audio, non-drag way in. Built once so keyboard focus survives updates. ──
-const logRows = SIGNALS.map(s => {
+const logRows = SIGNALS.map((s, i) => {
+  if (!i || SIGNALS[i - 1].chapter !== s.chapter) { // a heading where each chapter starts
+    const c = CHAPTERS.find(c => c.id === s.chapter), head = document.createElement('li'); head.className = 'chap';
+    head.innerHTML = `<h3></h3><p class="mono"></p>`; head.firstChild.textContent = c.title; head.lastChild.textContent = c.blurb; $('#log ol').append(head);
+  }
   const li = document.createElement('li'), b = document.createElement('button');
-  b.innerHTML = '<span class="mono"></span><span class="t"></span><span class="mono st"></span>';
-  b.firstChild.textContent = chLabel(s.ch);
+  b.innerHTML = '<span class="th"></span><span class="mono ch"></span><span class="t"></span><span class="mono st"></span>';
+  b.querySelector('.ch').textContent = chLabel(s.ch);
   b.onclick = () => goto(s.ch, true);
   li.append(b); $('#log ol').append(li);
   return [s, b];
@@ -196,8 +221,10 @@ function updateLog() {
     b.style.setProperty('--life', f ? s.life : 0);
     b.querySelector('.t').textContent = f ? s.title : 'Unidentified carrier';
     b.querySelector('.st').textContent = f ? s.status : 'Not yet heard';
+    const th = b.querySelector('.th'); if (f && s.img && !th.firstChild) { const im = new Image(); im.alt = ''; im.loading = 'lazy'; im.onerror = () => im.remove(); im.src = s.img; th.append(im); }
     locked === s ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current');
   }
+  for (const [s, p] of pins) { p.classList.toggle('found', found.has(s.id)); p.classList.toggle('on', locked === s); }
   $('#tally').textContent = `${found.size} of ${SIGNALS.length} logged`;
   $('#coda').hidden = found.size < SIGNALS.length;
 }

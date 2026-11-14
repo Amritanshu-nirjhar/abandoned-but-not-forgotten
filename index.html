@@ -38,6 +38,7 @@
         <input id="dial" type="range" min="0" max="100" step="0.1" value="0"
                aria-label="Tuning dial. Nine signals between channel 0 and 100." aria-describedby="state">
       </div>
+      <div id="chapters" class="mono" aria-hidden="true"></div>
       <div class="readout mono">
         <output id="ch" for="dial">CH 000.0</output>
         <span id="count" aria-hidden="true"></span>
@@ -59,6 +60,18 @@
       <ol></ol>
       <p id="coda" hidden>Nine logged. Eight will not answer again. One will, for as long as anyone points a light at it.</p>
     </nav>
+
+    <section id="map" aria-labelledby="map-h">
+      <h2 id="map-h" class="mono">Where they are</h2>
+      <p class="lede">Every pin is something in this station, at its real place on the Moon or Mars. Pick one to tune to it.</p>
+      <div class="maps"></div>
+      <p class="small">Things left at every Apollo landing site, such as the flags, are pinned at one of them. Maps: Solar System Scope, from NASA data.</p>
+    </section>
+
+    <section id="doors" aria-label="More to explore">
+      <a href="models.html"><span class="mono">Hardware bay</span><b>Walk the line of machines in 3D, and take them apart ▸</b></a>
+      <a href="film.html"><span class="mono">Film</span><b>Watch the 90-second treasure hunt ▸</b></a>
+    </section>
 
     <section id="scale" aria-labelledby="scale-h">
       <h2 id="scale-h" class="mono">The weight of it</h2>

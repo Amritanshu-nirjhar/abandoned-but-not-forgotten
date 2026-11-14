@@ -70,7 +70,7 @@ h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035
 
 <div class="start" id="start">
   <h1>Abandoned<br>but Not Forgotten</h1>
-  <p>Where did everything go? An 80-second film about the machines we left on the Moon and Mars.</p>
+  <p>A treasure hunt in space. A 90-second film about the things we left on the Moon and Mars.</p>
   <div class="actions">
     <button class="go" id="play">▶ Play with narration</button>
     <button id="playMute">Play without sound</button>
@@ -82,28 +82,29 @@ h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035
   <p class="cap" id="sub" aria-live="off"></p>
   <!-- The narrator's script. data-at is when each line starts, in seconds. Shown as plain text if motion is off. -->
   <ol id="script">
-    <li data-at="0.6">Three.</li>
-    <li data-at="1.5">Two.</li>
-    <li data-at="2.4">One.</li>
-    <li data-at="4.4">The biggest rocket ever built weighed more than four hundred elephants. Only a tiny capsule came home.</li>
-    <li data-at="11.6">So where did the rest go?</li>
-    <li data-at="13.6">This piece hit the Moon at nine thousand kilometres an hour. The whole Moon rang like a bell.</li>
-    <li data-at="21">Twelve explorers walked here. They left a mirror. A family photo. And a tiny statue, for friends who never made it.</li>
-    <li data-at="31">Then they blasted off, and left half their spaceship behind.</li>
-    <li data-at="37.7">Next stop: Mars.</li>
-    <li data-at="39.6">Robots fell from the sky under giant parachutes.</li>
-    <li data-at="45">One little rover was built to last ninety days. It refused to quit for fourteen years.</li>
-    <li data-at="52">Then came a storm that swallowed the Sun.</li>
-    <li data-at="56.4">And the rover went silent.</li>
-    <li data-at="60">Two hundred tonnes of our machines are still out there. Cold. Quiet. Waiting.</li>
-    <li data-at="67">All except one.</li>
-    <li data-at="69.6">Fire a laser at that mirror on the Moon, and the light bounces right back. Two and a half seconds. Every single time.</li>
-    <li data-at="79.6">Abandoned. But not forgotten.</li>
+    <li data-at="0.5">Psst. Want to go on a treasure hunt? In space?</li>
+    <li data-at="4.3">Hold on tight. Here we go!</li>
+    <li data-at="8.6">Rockets drop their empty parts on the way up. This one is heading for the Moon.</li>
+    <li data-at="17.7">Boom! The whole Moon rang like a bell, for three hours.</li>
+    <li data-at="22.3">Treasure number one: a mirror.</li>
+    <li data-at="26.2">Number two: a family photo.</li>
+    <li data-at="29.6">Number three: a tiny statue, for brave friends who never came home.</li>
+    <li data-at="34">They also left golf balls, a feather, and ninety-six bags of poo. Really.</li>
+    <li data-at="39.3">Then, whoosh! They flew home, and left the bottom of their spaceship behind.</li>
+    <li data-at="45.4">Next stop: Mars!</li>
+    <li data-at="47.3">Robots floated down from the sky on giant parachutes.</li>
+    <li data-at="52.6">Meet Oppy. She was built to work for ninety days. She kept going for fourteen years!</li>
+    <li data-at="60">Then a giant dust storm hid the Sun.</li>
+    <li data-at="63.6">Oppy ran out of power, and went quiet.</li>
+    <li data-at="67.5">All those machines are still up there. Two hundred tonnes of them!</li>
+    <li data-at="73.2">But one treasure still works.</li>
+    <li data-at="75.6">Remember the mirror? Shine a laser at it from Earth, and the light bounces right back. Every single time.</li>
+    <li data-at="84.8">They are far away. But they are not forgotten.</li>
   </ol>
   <div class="tags" aria-hidden="true" style="opacity:1"></div>
   <section class="end" style="opacity:1">
-    <h2 data-a="67">All except one.</h2>
-    <div data-a="80.5">
+    <h2 data-a="73.2">One treasure still works.</h2>
+    <div data-a="87.5">
       <div class="actions">
         <button id="again">↻ Play again</button>
         <a class="go" href="index.html">Open the listening station ▸</a>
@@ -126,7 +127,7 @@ h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035
 // Spacecraft are NASA's models (models.js: loadNASA) with hand-built stand-ins until they download.
 const still = () => document.documentElement.classList.add('still');
 const FREEZE = new URLSearchParams(location.search).has('t') ? +new URLSearchParams(location.search).get('t') : null;
-const T1 = 4.5, T2 = 13.5, T3 = 20.5, RT_END = 84;
+const T1 = 4.5, T2 = 13.5, T3 = 20.5, RT_END = 90;
 let R;
 try { if (matchMedia('(prefers-reduced-motion: reduce)').matches && FREEZE === null) throw 0; R = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true, preserveDrawingBuffer: FREEZE !== null }); }
 catch (e) { still(); }
@@ -357,6 +358,10 @@ add(fig, cyl(0.07, 0.06, 0.42, 10), silver); add(fig, ball(0.075, 12), silver, [
 const mirror = model('lrrr', Mn, 1.7, [3.9, gy(3.9, 2.9), 2.9]); mirror.rotation.y = 2.6;
 const glint = sprite(Mn, 0xbfe6ff); glint.position.set(3.9, gy(3.9, 2.9) + 0.6, 2.9);
 
+// Small true things by the lander: two golf balls, a falcon feather, and the bags the crews threw out
+for (const [x, z] of [[3.3, 4.6], [3.75, 4.35]]) add(Mn, ball(0.07, 16), mat(0xffffff, { roughness: 0.4 }), [x, gy(x, z) + 0.07, z]);
+const feather = add(Mn, new THREE.PlaneGeometry(0.36, 0.09), mat(0xe9e2cf, { side: THREE.DoubleSide, roughness: 0.9 }), [2.9, gy(2.9, 4.9) + 0.02, 4.9]); feather.rotation.set(-Math.PI / 2, 0, 0.6);
+for (let i = 0; i < 6; i++) { const x = 2.1 + (i % 3) * 0.3 + rnd() * 0.1, z = 2.6 + (i / 3 | 0) * 0.3; add(Mn, ball(0.15, 12), mat(0xf2f0ea, { roughness: 0.7 }), [x, gy(x, z) + 0.09, z]).scale.set(1, 0.6, 1.2); }
 const IMPACT = V(13, gy(13, -26), -26);
 const stage = model('s-ivb', Mn, 0.14, [0, 0, 0]); stage.rotation.z = 2.7;
 const shock = add(Mn, new THREE.RingGeometry(0.85, 1, 64), glow(0xfff2c9, { side: THREE.DoubleSide }), [IMPACT.x, IMPACT.y + 0.15, IMPACT.z]); shock.rotation.x = -Math.PI / 2;
@@ -536,7 +541,7 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
     if (t >= 7.0 && t < 8.55) { cam.position.set(wp.x - 2.3, 1.0, wp.z + 2.7); cam.lookAt(wp.x, 1.05, wp.z); }                          // tracking the walk, from in front
     else if (t >= 8.55 && t < 9.45) { cam.position.set(photo.position.x - 1.2 + (t - 8.55) * 0.25, 0.42, photo.position.z + 1.5); cam.lookAt(wp.x, 0.75, wp.z); } // low close-up: the photo goes down
     else if (t >= 9.45 && t < 11.05) { cam.position.set(4.9 - (t - 9.45) * 0.3, 1.5, 7.8); cam.lookAt(1.7, 0.9, 3.6); }                // medium: the statue, the mirror glinting
-    else if (t >= 11.05) { cam.position.set(4.4, 0.55, 6.0); cam.lookAt(0, 1.8 + Math.min(h, 16) * 0.55, 0); }                         // low angle: liftoff
+    else if (t >= 11.05) { const w = 1 - span(t, 11.3, 11.5); cam.position.set(4.4 + w * 0.8, 0.55 + w * 0.5, 6.0 + w * 1.6); cam.lookAt(w * 1.6, 1.8 - w * 1.1 + Math.min(h, 16) * 0.55, w * 2); }                         // low angle: liftoff
     if (going && lift < 0.9) { cam.position.x += Math.sin(t * 80) * 0.04 * (1 - lift / 0.9); cam.position.y += Math.cos(t * 67) * 0.03 * (1 - lift / 0.9); }
   }
 
@@ -581,10 +586,9 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
   const line = NARR.findLast(n => rt >= n.at), on = line ? span(rt, line.at, line.at + 0.4) * (1 - span(rt, line.end - 0.5, line.end)) : 0; // subtitles
   if (line && sub.textContent !== line.text) sub.textContent = line.text;
   sub.style.opacity = on;
-  // Big type: the countdown, then the running tally of what was left
+  // Big type: the running tally of what was left
   let bigText = '', bigK = 0, num = false;
-  if (rt >= 0.6 && rt < 3.3) { const i = Math.floor((rt - 0.6) / 0.9), f = (rt - 0.6) / 0.9 - i; bigText = String(3 - i); bigK = (1 - f) * (1 - f); big.style.transform = `scale(${1 + f * 0.5})`; }
-  else if (rt >= 60 && rt < 66.6) { const n = Math.round(213608 * span(rt, 60, 64)); bigText = `${n.toLocaleString('en-GB')} kg<small>left on the Moon and Mars</small>`; bigK = span(rt, 60, 60.5) * (1 - span(rt, 66, 66.6)); num = true; big.style.transform = 'translateY(-22vh)'; }
+  if (rt >= 67.5 && rt < 73.1) { const n = Math.round(213608 * span(rt, 67.5, 71)); bigText = `${n.toLocaleString('en-GB')} kg<small>left on the Moon and Mars</small>`; bigK = span(rt, 67.5, 68) * (1 - span(rt, 72.5, 73.1)); num = true; big.style.transform = 'translateY(-22vh)'; }
   if (big.innerHTML !== bigText) big.innerHTML = bigText; big.style.opacity = bigK; big.classList.toggle('num', num);
   fadeEl.style.opacity = Math.max(...[[T_CUT, 0.12], [T1, 0.35], [11.05, 0.18], [T2, 0.35], [T3, 0.35]].map(([c, w]) => 1 - Math.abs(t - c) / w), rt > 0 ? 1 - rt / 0.6 : 0, 0);
   bar.style.transform = `scaleX(${clamp(rt / RT_END)})`;
@@ -593,8 +597,8 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
 
 // ── Pacing: real seconds → scene seconds. Each beat gets the time its narration needs; the finale runs 1:1
 //    so the laser's 2.564 s round trip stays true. ──
-const WARP = [[0, 0], [3.4, 0.7], [11.5, 3.6], [13.3, 4.5], [20.5, 7.0], [30.5, 11.05], [37.5, 13.5], [51.5, 17.0], [59.5, 20.5]];
-const FIN = 59.5, LASER = 29.3; // real second the finale starts · scene second the laser first fires
+const WARP = [[0, 0], [5, 0.7], [9.5, 2.3], [13, 3.6], [14.8, 4.5], [22, 7.0], [32, 11.05], [38.6, 11.5], [45, 13.5], [59.5, 17.0], [67, 20.5]];
+const FIN = 67, LASER = 28.5; // real second the finale starts · scene second the laser first fires
 function warp(rt) {
   for (let i = 1; i < WARP.length; i++) if (rt < WARP[i][0]) { const [a, sa] = WARP[i - 1], [b, sb] = WARP[i]; return sa + (sb - sa) * (rt - a) / (b - a); }
   return 20.5 + rt - FIN;
@@ -604,14 +608,14 @@ function warp(rt) {
 //    Otherwise the browser's own speech voice reads the line, preferring the most natural voice installed. ──
 let speakOn = false, cue = 0, voice = null;
 const synth = window.speechSynthesis;
-const pickVoice = () => { const v = synth ? synth.getVoices().filter(v => /^en/i.test(v.lang)) : []; voice = ['Natural', 'Premium', 'Enhanced', 'Neural', 'Google UK English Male', 'Google UK English Female', 'Google US English', 'Daniel', 'Samantha'].map(n => v.find(x => x.name.includes(n))).find(Boolean) || v[0] || null; };
+const pickVoice = () => { const v = synth ? synth.getVoices().filter(v => /^en/i.test(v.lang)) : []; voice = ['Natural', 'Premium', 'Enhanced', 'Neural', 'Google UK English Female', 'Google US English', 'Samantha', 'Google UK English Male', 'Daniel'].map(n => v.find(x => x.name.includes(n))).find(Boolean) || v[0] || null; };
 if (synth) { pickVoice(); synth.addEventListener('voiceschanged', pickVoice); addEventListener('pagehide', () => synth.cancel()); }
 function narrate(rt) {
   while (cue < NARR.length && rt >= NARR[cue].at) {
     if (speakOn && rt - NARR[cue].at < 1.5) {
       const clip = clips[cue];
       if (clip.ok) { clip.currentTime = 0; clip.play().catch(() => {}); }
-      else if (synth) { const u = new SpeechSynthesisUtterance(NARR[cue].text); if (voice) u.voice = voice; u.rate = 0.95; synth.speak(u); }
+      else if (synth) { const u = new SpeechSynthesisUtterance(NARR[cue].text); if (voice) u.voice = voice; u.rate = 0.95; u.pitch = 1.08; synth.speak(u); }
     }
     cue++;
   }
@@ -627,6 +631,17 @@ function audioInit() {
   const o = ac.createOscillator(); bed.drone = ac.createGain(); o.frequency.value = 55; bed.drone.gain.value = 0; o.connect(bed.drone).connect(ac.destination); o.start();
 }
 function tone(f0, f1, dur, vol) { const o = ac.createOscillator(), g = ac.createGain(), n = ac.currentTime; o.frequency.setValueAtTime(f0, n); o.frequency.exponentialRampToValueAtTime(f1, n + dur); g.gain.setValueAtTime(vol, n); g.gain.exponentialRampToValueAtTime(0.0001, n + dur); o.connect(g).connect(ac.destination); o.start(); o.stop(n + dur); }
+// Music: a soft plucked tune, one note per half second, made in the browser. Each part of the story has its own
+// four notes (as semitones above A3); the tune drops out for the quiet moment and comes back brighter for the ending.
+const TUNES = [[0, [0, 7, 12, 16]], [5, [3, 7, 12, 15]], [14.8, [0, 5, 12, 17]], [22, [0, 7, 12, 16]], [38.6, [5, 12, 17, 21]], [45, [2, 9, 14, 17]], [60, [2, 5, 9, 12]], [63.6, null], [67.5, [0, 7, 12, 16]], [73.2, [0, 4, 7, 12, 16, 19]]];
+function music(rt) {
+  const beat = Math.floor(rt * 2); if (beat === Math.floor(lastRt * 2)) return;
+  const tune = TUNES.findLast(x => rt >= x[0])[1]; if (!tune) return;
+  const f = 220 * 2 ** (tune[beat % tune.length] / 12), o = ac.createOscillator(), g = ac.createGain(), n = ac.currentTime;
+  o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0, n); g.gain.linearRampToValueAtTime(0.045, n + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, n + 1.1);
+  o.connect(g).connect(ac.destination); o.start(); o.stop(n + 1.2);
+  if (beat % 4 === 0) tone(f / 4, f / 4, 1.8, 0.05); // a low note under every other bar
+}
 function sound(s, rt) {
   if (!ac || ac.state !== 'running') { lastS = s; lastRt = rt; return; }
   const set = (g, v) => g.gain.setTargetAtTime(v, ac.currentTime, 0.2), crossed = x => lastS < x && s >= x, storm = span(s, 17.2, 19.4);
@@ -637,8 +652,8 @@ function sound(s, rt) {
   if (crossed(T2 + 0.9)) tone(60, 30, 1.2, 0.4);                                              // heat shield lands
   const k = Math.floor((s - LASER) / 1.282), k0 = Math.floor((lastS - LASER) / 1.282);
   if (s > LASER && k > k0) k % 2 ? tone(660, 660, 0.25, 0.05) : k && tone(1320, 1320, 1.6, 0.14); // out… and back
-  for (const c of [0.6, 1.5, 2.4]) if (lastRt < c && rt >= c) tone(880, 880, 0.18, 0.12); // countdown beeps
-  if (lastRt < 3.4 && rt >= 3.4) tone(110, 40, 1.5, 0.5);                                 // ignition
+  if (lastRt < 5 && rt >= 5) tone(110, 40, 1.5, 0.5); // ignition
+  music(rt);
   lastS = s; lastRt = rt;
 }
 

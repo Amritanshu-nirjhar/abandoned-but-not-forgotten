@@ -475,6 +475,37 @@ SIGNALS.push(
 SIGNALS.sort((a, b) => a.ch - b.ch);
 SIGNALS.forEach((s, i) => { s.ch = Math.round((3 + i * 93 / (SIGNALS.length - 1)) * 10) / 10; }); // ch above only sets the order; space them evenly along the dial
 
+// ── Chapters, map positions, links into the 3D bay, and a few more photographs ──
+// The dial runs through four chapters in this order; inside a chapter, oldest first.
+const CHAPTERS = [
+  { id: 'thrown', title: 'Thrown away', blurb: 'Used once, then dropped, dumped or crashed on purpose.' },
+  { id: 'left', title: 'Left on purpose', blurb: 'Things people chose to leave behind.' },
+  { id: 'died', title: 'Worked until they stopped', blurb: 'Machines that kept going until something ended them.' },
+  { id: 'answers', title: 'Still answering', blurb: 'The one thing that never stopped.' },
+];
+// id: [chapter, latitude, longitude (east positive), 3D model id]. Objects left at every Apollo site are pinned at one of them.
+const META = {
+  'apollo-13-s-ivb': ['thrown', -2.55, -27.88, 's-ivb'], 'ranger-7': ['thrown', -10.63, -20.6], 'lunar-prospector': ['thrown', -87.7, 42.1], lcross: ['thrown', -84.7, -48.7], grail: ['thrown', 75.6, -26.6],
+  'eagle-descent-stage': ['thrown', 0.674, 23.473, 'lm-descent'], 'ascent-stages': ['thrown', -3.94, -21.2, 'lm-descent'], jettison: ['thrown', 0.674, 23.473], 'ninety-six-bags': ['thrown', 20.19, 30.77],
+  'perseverance-backshell': ['thrown', 18.4, 77.5, 'perseverance'], 'opportunity-heat-shield': ['thrown', -1.9, -5.5],
+  'apollo-11-disc-and-plaque': ['left', 0.674, 23.473, 'lm-descent'], 'apollo-flags': ['left', 0.674, 23.473], 'shepard-golf-balls': ['left', -3.645, -17.471], 'fallen-astronaut': ['left', 26.132, 3.634],
+  'duke-family-photo': ['left', -8.973, 15.5], 'hammer-and-feather': ['left', 26.132, 3.634], 'tdc-initials': ['left', 20.19, 30.77], 'lunar-rover': ['left', 26.132, 3.634],
+  'surveyor-3': ['died', -3.02, -23.42], alsep: ['died', -3.01, -23.42], 'viking-1': ['died', 22.27, -47.95], sojourner: ['died', 19.13, -33.22], spirit: ['died', -14.57, 175.47, 'opportunity'], phoenix: ['died', 68.22, -125.7],
+  opportunity: ['died', -2.28, -5.23, 'opportunity'], insight: ['died', 4.502, 135.623, 'insight'], ingenuity: ['died', 18.4, 77.4, 'ingenuity'], 'mars-polar-lander': ['died', -76, 165, 'mars-polar-lander'],
+  retroreflectors: ['answers', 0.674, 23.473, 'lrrr'],
+};
+const PHOTOS = {
+  'eagle-descent-stage': { ...nasa('as11-40-5927'), alt: 'The lunar module standing on the Moon: a gold-foil lower half on four legs, with the silver crew cabin still on top of it.', credit: 'NASA · AS11-40-5927' },
+  'ascent-stages': { ...nasa('as11-44-6642'), alt: 'The top half of a lunar module flying alone above the grey Moon, with the blue half-lit Earth rising beyond the horizon.', credit: 'NASA · AS11-44-6642' },
+  grail: { ...nasa('PIA12009'), alt: 'An artist’s picture of two small box-shaped probes with solar panels, flying one behind the other low over the cratered Moon.', credit: 'NASA/JPL-Caltech · PIA12009 (artist’s concept)' },
+  'tdc-initials': { ...nasa('as17-147-22526'), alt: 'Gene Cernan driving the lunar rover across the valley floor at the Apollo 17 site. The letters themselves were never photographed.', credit: 'NASA · AS17-147-22526 (the rover the letters were drawn beside)' },
+};
+for (const s of SIGNALS) { const [chapter, lat, lon, model] = META[s.id]; Object.assign(s, { chapter, lat, lon, model }, PHOTOS[s.id]); }
+SIGNALS.sort((a, b) => CHAPTERS.findIndex(c => c.id === a.chapter) - CHAPTERS.findIndex(c => c.id === b.chapter) || a.left.localeCompare(b.left));
+SIGNALS.forEach((s, i) => { s.ch = Math.round((3 + i * 93 / (SIGNALS.length - 1)) * 10) / 10; });
+console.assert(SIGNALS.at(-1).id === 'retroreflectors', 'the live signal should end the dial');
+const MAPS = { Moon: 'Solarsystemscope texture 2k moon.jpg', Mars: 'Solarsystemscope texture 2k mars.jpg' }; // equirectangular, longitude 0 at the centre
+
 // The scale of it. Figures from the Zenodo inventory (Hotham 2026); they count every nation's hardware.
 const SCALE = { moonKg: 203228, marsKg: 10380, moonObjects: 133, marsObjects: 27, usShare: 0.58, sivbShare: 0.34 };
 
