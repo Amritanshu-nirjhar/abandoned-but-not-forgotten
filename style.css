@@ -59,34 +59,41 @@ h1 {
 .scope { position: relative; height: clamp(130px, 22vw, 190px); border: 1px solid var(--rule); background: linear-gradient(rgb(255 255 255 / .035), transparent); }
 .scope:hover, .scope:focus-within { border-color: var(--dim); }
 #scope { width: 100%; height: 100%; display: block; }
-#dial { position: absolute; inset: 0; cursor: grab; width: 100%; height: 100%; margin: 0; background: none; appearance: none; -webkit-appearance: none; touch-action: pan-y; }
-#dial:active { cursor: grabbing; }
+#dial { position: absolute; inset: 0; cursor: pointer; width: 100%; height: 100%; margin: 0; background: none; appearance: none; -webkit-appearance: none; touch-action: pan-y; }
 #dial::-webkit-slider-runnable-track { height: 100%; background: none; }
 #dial::-webkit-slider-thumb {
   -webkit-appearance: none; width: 44px; height: 100%; border: 0; border-radius: 0;
-  background:
-    radial-gradient(circle at 50% 20px, #1a1205 0 3px, transparent 4px),
-    radial-gradient(circle at 50% 20px, hsl(36 90% 64%) 0 14px, hsl(36 90% 64% / .25) 15px 19px, transparent 20px),
-    linear-gradient(90deg, transparent calc(50% - 1px), hsl(36 90% 64%) 0 calc(50% + 1px), transparent 0);
+  background: linear-gradient(90deg, transparent calc(50% - 1px), hsl(36 90% 64%) 0 calc(50% + 1px), transparent 0);
 }
 #dial::-moz-range-track { height: 100%; background: none; }
 #dial::-moz-range-thumb {
   width: 44px; height: 100%; border: 0; border-radius: 0;
-  background:
-    radial-gradient(circle at 50% 20px, #1a1205 0 3px, transparent 4px),
-    radial-gradient(circle at 50% 20px, hsl(36 90% 64%) 0 14px, hsl(36 90% 64% / .25) 15px 19px, transparent 20px),
-    linear-gradient(90deg, transparent calc(50% - 1px), hsl(36 90% 64%) 0 calc(50% + 1px), transparent 0);
+  background: linear-gradient(90deg, transparent calc(50% - 1px), hsl(36 90% 64%) 0 calc(50% + 1px), transparent 0);
 }
 #dial:focus-visible { outline-offset: 0; }
 .readout { display: flex; align-items: center; gap: 1rem; }
 #ch { color: var(--ink); font-size: .875rem; }
 #count { color: var(--sig); }
 #got { color: var(--dim); }
-.readout { margin-top: .6rem; flex-wrap: wrap; }
+.readout { justify-content: center; min-height: 1.5em; }
+/* The tuning knob: drag around it to turn. Five turns cover the band, so each object is a comfortable sixth of a turn apart. */
+.tuner { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: clamp(.5rem, 3vw, 2rem); margin: 1rem 0 .4rem; }
+.tuner #prev { justify-self: end; } .tuner #next { justify-self: start; }
+#knob { position: relative; width: clamp(116px, 30vw, 164px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+#knob:active { cursor: grabbing; }
+#knob .ring { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--rot, 0deg)); background: repeating-conic-gradient(from -.5deg, var(--dim) 0 1deg, transparent 1deg 12deg); -webkit-mask: radial-gradient(closest-side, transparent 84%, #000 85%); mask: radial-gradient(closest-side, transparent 84%, #000 85%); }
+#knob .face { position: absolute; inset: 11%; border-radius: 50%; transform: rotate(var(--rot, 0deg)); background: radial-gradient(circle at 50% 30%, #2b2d31, #0c0d0f 75%); border: 1px solid var(--rule); box-shadow: 0 10px 34px rgb(0 0 0 / .7), inset 0 1px 0 rgb(255 255 255 / .14); }
+#knob .face::after { content: ""; position: absolute; left: 50%; top: 5%; width: 5px; height: 24%; margin-left: -2.5px; border-radius: 3px; background: hsl(36 90% 64%); box-shadow: 0 0 10px hsl(36 90% 64% / .7); }
+#knob:hover .face, #knob:active .face { border-color: var(--dim); }
+#knob #ch, #knob small { position: relative; pointer-events: none; grid-area: 1 / 1; }
+#knob small { align-self: end; margin-bottom: 22%; color: hsl(36 90% 64%); font-size: .625rem; letter-spacing: .1em; animation: nudge 1.4s ease-in-out infinite; }
+.touched #knob small { display: none; }
+@keyframes nudge { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { #knob small { animation: none; } }
 .seek { margin-left: auto; display: flex; gap: .5rem; }
-.seek button { min-height: 44px; padding: 0 1rem; border: 1px solid var(--rule); color: var(--ink); }
-.seek button:hover { border-color: var(--ink); }
-.seek #next { background: hsl(36 90% 64%); border-color: hsl(36 90% 64%); color: #1a1205; }
+.tuner button { min-height: 44px; padding: 0 clamp(.6rem, 2.5vw, 1rem); border: 1px solid var(--rule); color: var(--ink); }
+.tuner button:hover { border-color: var(--ink); }
+.tuner #next { background: hsl(36 90% 64%); border-color: hsl(36 90% 64%); color: #1a1205; }
 #state { margin: 0; color: var(--ink); min-height: 3em; text-transform: none; letter-spacing: .02em; font-size: .8125rem; }
 
 /* ── Transmission ── */

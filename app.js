@@ -1,10 +1,11 @@
 // Signal console. Content comes from data.js (SIGNALS, SOURCES, marsLightSeconds, MOON_LIGHT_S).
 const $ = s => document.querySelector(s);
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TURN = 20;   // channels per full turn of the knob
 const TOL = 1.4;   // how close (in channels) the dial must be to catch a carrier
 const PAD = 22;    // half the 44px dial thumb: the thumb's centre travels PAD … width−PAD
 
-const dial = $('#dial'), rx = $('#rx'), stateEl = $('#state'), count = $('#count'), cv = $('#scope'), g = cv.getContext('2d');
+const knob = $('#knob'), dial = $('#dial'), rx = $('#rx'), stateEl = $('#state'), count = $('#count'), cv = $('#scope'), g = cv.getContext('2d');
 const found = new Set();
 let target, locked = null, timers = [], noiseAmp = 1, touched = false;
 
@@ -54,10 +55,6 @@ function draw() {
     found.has(s.id) ? (g.fillStyle = 'hsl(36 90% 64%)', g.fill()) : (g.strokeStyle = '#8f8b83', g.lineWidth = 1, g.stroke());
     if (s === target) { g.beginPath(); g.arc(X(s.ch), h - 7, 7, 0, 7); g.strokeStyle = '#f4f0e7'; g.lineWidth = 1; g.stroke(); }
   }
-  if (!touched) { // until the needle is first moved, say what it is
-    const x = X(+dial.value) + 26, a = reduce ? 1 : 0.6 + 0.4 * Math.sin(performance.now() / 300);
-    g.font = '500 12px "DM Mono", monospace'; g.fillStyle = `hsl(36 90% 64% / ${a})`; g.fillText('DRAG ME ▸', x, 24);
-  }
   g.beginPath();
   for (let x = 0; x <= w; x += 3) {
     let y = Math.random() * 9 * noiseAmp;
@@ -79,12 +76,13 @@ function tune() {
   const v = +dial.value;
   $('#ch').textContent = chLabel(v);
   dial.setAttribute('aria-valuetext', chLabel(v));
+  knob.style.setProperty('--rot', v / TURN * 360 + 'deg');
   const near = SIGNALS.find(s => Math.abs(s.ch - v) < TOL) || null;
   if (near === target) return;
   target = near; locked = null; cancel(); count.textContent = '';
   rx.replaceChildren(); rx.className = '';
   noiseAmp = 1; updateLog();
-  if (!near) { say(found.size ? 'Static. No carrier.' : 'Static. Drag the needle onto a spike, or press Next signal.'); setNoise(0.05); }
+  if (!near) { say(found.size ? 'Static. No carrier.' : 'Static. Turn the knob to a spike, or press Next signal.'); setNoise(0.05); }
   else {
     say(found.has(near.id) ? `Carrier: ${near.title}. Hold.` : 'Carrier detected. Hold.');
     setNoise(0.035);
@@ -240,8 +238,21 @@ function goto(ch, scroll) {
   dial.value = ch; tune();
   if (scroll) $('#console').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
 }
-dial.addEventListener('input', () => { touched = true; tune(); });
-$('#next').onclick = () => { touched = true; const s = SIGNALS.find(s => s.ch > +dial.value + TOL); if (s) goto(s.ch); };
+const touch = () => { touched = true; document.body.classList.add('touched'); };
+dial.addEventListener('input', () => { touch(); tune(); });
+// Knob: dragging around its centre turns it. Letting go near an object settles onto it.
+{
+  let last = null;
+  const ang = e => { const r = knob.getBoundingClientRect(); return Math.atan2(e.clientY - r.top - r.height / 2, e.clientX - r.left - r.width / 2) * 180 / Math.PI; };
+  knob.onpointerdown = e => { knob.setPointerCapture(e.pointerId); last = ang(e); touch(); };
+  knob.onpointermove = e => {
+    if (last === null) return;
+    const a = ang(e), d = ((a - last + 540) % 360) - 180; last = a; // shortest way round, so crossing ±180° does not jump
+    dial.value = Math.max(0, Math.min(100, +dial.value + d / 360 * TURN)); tune();
+  };
+  knob.onpointerup = knob.onpointercancel = () => { last = null; if (target) { dial.value = target.ch; tune(); } };
+}
+$('#next').onclick = () => { touch(); const s = SIGNALS.find(s => s.ch > +dial.value + TOL); if (s) goto(s.ch); };
 $('#prev').onclick = () => { const s = SIGNALS.findLast(s => s.ch < +dial.value - TOL); if (s) goto(s.ch); };
 
 // ── Scale: one square per tonne ──
@@ -265,7 +276,7 @@ linkList($('#credits'), SIGNALS.filter(s => s.img).map(s => [`${s.title}: ${s.cr
 
 // ── Boot: a cursor, four lines, then the band. Any key or tap skips it. ──
 const N = SIGNALS.length, STOPPED = SIGNALS.filter(s => s.state === 'dead').length;
-const BOOT = `> ${N} objects. two worlds.\n> most of them never transmitted. ${STOPPED} of them stopped.\n> one still answers.\n> drag the needle to find them.\n`;
+const BOOT = `> ${N} objects. two worlds.\n> most of them never transmitted. ${STOPPED} of them stopped.\n> one still answers.\n> turn the knob to find them.\n`;
 $('#coda').textContent = `All ${N} logged. ${N - 1} will not answer again. One will, for as long as anyone points a light at it.`;
 dial.setAttribute('aria-label', `Tuning dial. ${N} signals between channel 0 and 100.`);
 let started = false;
