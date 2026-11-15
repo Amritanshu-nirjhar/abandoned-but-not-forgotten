@@ -33,6 +33,7 @@
 
   <section id="console" hidden aria-label="Signal console">
     <div class="band">
+      <p class="how mono">Each spike is one object left behind. <b>Drag the amber needle</b> onto a spike and hold it there, or press <b>Next signal</b>.</p>
       <div class="scope">
         <canvas id="scope" aria-hidden="true"></canvas>
         <input id="dial" type="range" min="0" max="100" step="0.1" value="0"
@@ -42,9 +43,10 @@
       <div class="readout mono">
         <output id="ch" for="dial">CH 000.0</output>
         <span id="count" aria-hidden="true"></span>
+        <span id="got"></span>
         <div class="seek">
-          <button id="prev" class="mono" aria-label="Seek to previous signal">◂ Seek</button>
-          <button id="next" class="mono" aria-label="Seek to next signal">Seek ▸</button>
+          <button id="prev" class="mono" aria-label="Seek to previous signal">◂ Previous</button>
+          <button id="next" class="mono" aria-label="Seek to next signal">Next signal ▸</button>
         </div>
       </div>
       <p id="state" class="mono" role="status">Static. No carrier.</p>

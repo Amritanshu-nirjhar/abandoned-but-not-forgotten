@@ -6,7 +6,7 @@ const PAD = 22;    // half the 44px dial thumb: the thumb's centre travels PAD �
 
 const dial = $('#dial'), rx = $('#rx'), stateEl = $('#state'), count = $('#count'), cv = $('#scope'), g = cv.getContext('2d');
 const found = new Set();
-let target, locked = null, timers = [], noiseAmp = 1;
+let target, locked = null, timers = [], noiseAmp = 1, touched = false;
 
 const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 const every = (fn, ms) => timers.push(setInterval(fn, ms));
@@ -48,16 +48,24 @@ function draw() {
   if (cv.width !== Math.round(w * d)) { cv.width = Math.round(w * d); cv.height = Math.round(h * d); }
   g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, w, h);
   const X = ch => PAD + ch / 100 * (w - 2 * PAD);
-  g.fillStyle = '#8f8b83';
-  for (const s of SIGNALS) g.fillRect(X(s.ch), h - 6, 1, 6);
+  // One marker per object along the bottom: hollow until found, filled amber after. The one under the needle is ringed.
+  for (const s of SIGNALS) {
+    g.beginPath(); g.arc(X(s.ch), h - 7, 3, 0, 7);
+    found.has(s.id) ? (g.fillStyle = 'hsl(36 90% 64%)', g.fill()) : (g.strokeStyle = '#8f8b83', g.lineWidth = 1, g.stroke());
+    if (s === target) { g.beginPath(); g.arc(X(s.ch), h - 7, 7, 0, 7); g.strokeStyle = '#f4f0e7'; g.lineWidth = 1; g.stroke(); }
+  }
+  if (!touched) { // until the needle is first moved, say what it is
+    const x = X(+dial.value) + 26, a = reduce ? 1 : 0.6 + 0.4 * Math.sin(performance.now() / 300);
+    g.font = '500 12px "DM Mono", monospace'; g.fillStyle = `hsl(36 90% 64% / ${a})`; g.fillText('DRAG ME ▸', x, 24);
+  }
   g.beginPath();
   for (let x = 0; x <= w; x += 3) {
     let y = Math.random() * 9 * noiseAmp;
     for (const s of SIGNALS) {
       const dx = (x - X(s.ch)) / 6;
-      if (dx > -4 && dx < 4) y += s.life * (h - 28) * Math.exp(-dx * dx) * (1 - Math.random() * 0.3 * (1 - s.life));
+      if (dx > -4 && dx < 4) y += s.life * (h - 62) * Math.exp(-dx * dx) * (1 - Math.random() * 0.3 * (1 - s.life));
     }
-    g.lineTo(x, h - 9 - y);
+    g.lineTo(x, h - 16 - y);
   }
   g.strokeStyle = 'hsl(36 50% 64% / .75)'; g.lineWidth = 1; g.stroke();
 }
@@ -76,7 +84,7 @@ function tune() {
   target = near; locked = null; cancel(); count.textContent = '';
   rx.replaceChildren(); rx.className = '';
   noiseAmp = 1; updateLog();
-  if (!near) { say('Static. No carrier.'); setNoise(0.05); }
+  if (!near) { say(found.size ? 'Static. No carrier.' : 'Static. Drag the needle onto a spike, or press Next signal.'); setNoise(0.05); }
   else {
     say(found.has(near.id) ? `Carrier: ${near.title}. Hold.` : 'Carrier detected. Hold.');
     setNoise(0.035);
@@ -225,15 +233,15 @@ function updateLog() {
     locked === s ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current');
   }
   for (const [s, p] of pins) { p.classList.toggle('found', found.has(s.id)); p.classList.toggle('on', locked === s); }
-  $('#tally').textContent = `${found.size} of ${SIGNALS.length} logged`;
+  $('#tally').textContent = $('#got').textContent = `${found.size} of ${SIGNALS.length} logged`;
   $('#coda').hidden = found.size < SIGNALS.length;
 }
 function goto(ch, scroll) {
   dial.value = ch; tune();
   if (scroll) $('#console').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
 }
-dial.addEventListener('input', tune);
-$('#next').onclick = () => { const s = SIGNALS.find(s => s.ch > +dial.value + TOL); if (s) goto(s.ch); };
+dial.addEventListener('input', () => { touched = true; tune(); });
+$('#next').onclick = () => { touched = true; const s = SIGNALS.find(s => s.ch > +dial.value + TOL); if (s) goto(s.ch); };
 $('#prev').onclick = () => { const s = SIGNALS.findLast(s => s.ch < +dial.value - TOL); if (s) goto(s.ch); };
 
 // ── Scale: one square per tonne ──
@@ -257,7 +265,7 @@ linkList($('#credits'), SIGNALS.filter(s => s.img).map(s => [`${s.title}: ${s.cr
 
 // ── Boot: a cursor, four lines, then the band. Any key or tap skips it. ──
 const N = SIGNALS.length, STOPPED = SIGNALS.filter(s => s.state === 'dead').length;
-const BOOT = `> ${N} objects. two worlds.\n> most of them never transmitted. ${STOPPED} of them stopped.\n> one still answers.\n> turn the dial.\n`;
+const BOOT = `> ${N} objects. two worlds.\n> most of them never transmitted. ${STOPPED} of them stopped.\n> one still answers.\n> drag the needle to find them.\n`;
 $('#coda').textContent = `All ${N} logged. ${N - 1} will not answer again. One will, for as long as anyone points a light at it.`;
 dial.setAttribute('aria-label', `Tuning dial. ${N} signals between channel 0 and 100.`);
 let started = false;

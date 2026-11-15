@@ -54,24 +54,39 @@ h1 {
 
 /* ── Band: the canvas is the spectrum, the native range input is the dial ── */
 .band { position: sticky; top: 0; z-index: 2; background: linear-gradient(var(--bg) 85%, transparent); padding-bottom: 1.25rem; }
-.scope { position: relative; height: clamp(96px, 20vw, 168px); border-bottom: 1px solid var(--rule); }
+.how { margin: 0 0 .6rem; color: var(--ink); text-transform: none; letter-spacing: .02em; font-size: .8125rem; }
+.how b { color: hsl(36 90% 64%); font-weight: 500; }
+.scope { position: relative; height: clamp(130px, 22vw, 190px); border: 1px solid var(--rule); background: linear-gradient(rgb(255 255 255 / .035), transparent); }
+.scope:hover, .scope:focus-within { border-color: var(--dim); }
 #scope { width: 100%; height: 100%; display: block; }
-#dial { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: none; appearance: none; -webkit-appearance: none; cursor: ew-resize; touch-action: pan-y; }
+#dial { position: absolute; inset: 0; cursor: grab; width: 100%; height: 100%; margin: 0; background: none; appearance: none; -webkit-appearance: none; touch-action: pan-y; }
+#dial:active { cursor: grabbing; }
 #dial::-webkit-slider-runnable-track { height: 100%; background: none; }
 #dial::-webkit-slider-thumb {
   -webkit-appearance: none; width: 44px; height: 100%; border: 0; border-radius: 0;
-  background: linear-gradient(90deg, transparent calc(50% - 1px), var(--ink) 0 calc(50% + 1px), transparent 0);
+  background:
+    radial-gradient(circle at 50% 20px, #1a1205 0 3px, transparent 4px),
+    radial-gradient(circle at 50% 20px, hsl(36 90% 64%) 0 14px, hsl(36 90% 64% / .25) 15px 19px, transparent 20px),
+    linear-gradient(90deg, transparent calc(50% - 1px), hsl(36 90% 64%) 0 calc(50% + 1px), transparent 0);
 }
 #dial::-moz-range-track { height: 100%; background: none; }
 #dial::-moz-range-thumb {
   width: 44px; height: 100%; border: 0; border-radius: 0;
-  background: linear-gradient(90deg, transparent calc(50% - 1px), var(--ink) 0 calc(50% + 1px), transparent 0);
+  background:
+    radial-gradient(circle at 50% 20px, #1a1205 0 3px, transparent 4px),
+    radial-gradient(circle at 50% 20px, hsl(36 90% 64%) 0 14px, hsl(36 90% 64% / .25) 15px 19px, transparent 20px),
+    linear-gradient(90deg, transparent calc(50% - 1px), hsl(36 90% 64%) 0 calc(50% + 1px), transparent 0);
 }
 #dial:focus-visible { outline-offset: 0; }
 .readout { display: flex; align-items: center; gap: 1rem; }
 #ch { color: var(--ink); font-size: .875rem; }
 #count { color: var(--sig); }
-.seek { margin-left: auto; display: flex; gap: .75rem; }
+#got { color: var(--dim); }
+.readout { margin-top: .6rem; flex-wrap: wrap; }
+.seek { margin-left: auto; display: flex; gap: .5rem; }
+.seek button { min-height: 44px; padding: 0 1rem; border: 1px solid var(--rule); color: var(--ink); }
+.seek button:hover { border-color: var(--ink); }
+.seek #next { background: hsl(36 90% 64%); border-color: hsl(36 90% 64%); color: #1a1205; }
 #state { margin: 0; color: var(--ink); min-height: 3em; text-transform: none; letter-spacing: .02em; font-size: .8125rem; }
 
 /* ── Transmission ── */
