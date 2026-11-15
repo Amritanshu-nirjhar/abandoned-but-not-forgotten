@@ -6,6 +6,10 @@
 <title>Abandoned but Not Forgotten</title>
 <meta name="description" content="A listening station for NASA hardware left on the Moon and Mars. Tune, wait, and find the one thing that still answers.">
 <meta name="theme-color" content="#08090a">
+<script>
+// First visit of a session opens on the film. Its Skip and end buttons come back here; links to a specific object (#id) skip it.
+try { if (!sessionStorage.seenFilm && !location.hash) { sessionStorage.seenFilm = 1; location.replace('film.html'); } } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..400&display=swap" rel="stylesheet">

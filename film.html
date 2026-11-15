@@ -26,7 +26,8 @@ h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035
 .cap b { font-weight: 500; color: var(--sig); }
 
 /* Cards pinned to 3D objects */
-.tag { position: absolute; left: max(16px, 4vw); top: 11vh; width: clamp(128px, 20vw, 230px); box-shadow: 0 12px 40px rgb(0 0 0 / .6); transform-origin: 0 0; background: rgb(8 9 13 / .9); border: 1px solid rgb(255 255 255 / .35); padding: 6px; will-change: transform; }
+.tag { position: absolute; left: max(16px, 4vw); top: max(11vh, 64px); width: clamp(128px, 20vw, 230px); box-shadow: 0 12px 40px rgb(0 0 0 / .6); transform-origin: 0 0; background: rgb(8 9 13 / .9); border: 1px solid rgb(255 255 255 / .35); padding: 6px; will-change: transform; }
+@media (max-width: 600px) { .tag { top: 116px; } }
 .tag img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
 .tag span { display: block; font: 500 clamp(.85rem, 1.5vw, 1.1rem)/1.2 var(--serif); padding: 7px 3px 2px; }
 
@@ -46,7 +47,18 @@ h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035
 #big { position: absolute; inset: 0; margin: 0; display: grid; place-content: center; text-align: center; font: 300 clamp(5rem, 26vw, 16rem)/1 var(--serif); letter-spacing: -.04em; text-shadow: 0 4px 60px #000; font-variant-numeric: tabular-nums; }
 #big small { display: block; font: 500 clamp(.8rem, 2vw, 1.1rem)/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--sig); }
 #big.num { font-size: clamp(2.4rem, 8vw, 6rem); }
-.still #big { display: none; }
+.still #big, .still #hunt, .still #days, .still #herd { display: none; }
+#hunt { position: absolute; left: max(16px, 4vw); top: 14px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: calc(100vw - 190px); font: 500 .75rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+#hunt b { flex-basis: 100%; color: var(--sig); font-weight: 500; margin-bottom: 2px; text-shadow: 0 1px 8px #000; }
+#hunt span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 99px; background: rgb(8 9 13 / .85); border: 1px solid var(--sig); opacity: 0; }
+#hunt i { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--sig); color: #1a1205; font-style: normal; }
+#days { position: absolute; right: max(16px, 4vw); top: 64px; width: min(250px, 56vw); text-align: right; opacity: 0; text-shadow: 0 2px 12px rgb(0 0 0 / .6); }
+#days strong { display: block; font: 300 clamp(2rem, 6vw, 3.4rem)/1 var(--serif); font-variant-numeric: tabular-nums; }
+#days div { height: 8px; margin: 8px 0 6px; background: rgb(0 0 0 / .35); border-radius: 4px; overflow: hidden; }
+#days u { display: block; height: 100%; background: var(--sig); border-radius: 4px; transform-origin: left; }
+#days small { font: 500 .75rem/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+#herd { position: absolute; left: 0; right: 0; bottom: 27vh; margin: 0 auto; max-width: 92vw; text-align: center; font-size: clamp(.9rem, 2vw, 1.3rem); line-height: 1.15; opacity: 0; }
+#herd small { display: block; margin-top: 6px; font: 500 .75rem/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--sig); }
 .still .start { display: none; }
 .still #script { display: block; list-style: none; padding: 0; max-width: 30em; margin: 2rem auto; font-size: 1.25rem; line-height: 1.5; }
 .still #script li { margin-bottom: 1rem; }
@@ -78,11 +90,15 @@ h1 { font: 300 clamp(2.6rem, 11vw, 8rem)/.92 var(--serif); letter-spacing: -.035
 
 <main class="hud">
   <p id="big" aria-hidden="true"></p>
+  <!-- On-screen extras borrowed from good explainer films: the question the film answers, a counter, a size comparison -->
+  <div id="hunt" aria-hidden="true"><b>Which one still works?</b><span><i>1</i>a mirror</span><span><i>2</i>a family photo</span><span><i>3</i>a tiny statue</span></div>
+  <div id="days" aria-hidden="true"><strong></strong><div><u></u></div><small></small></div>
+  <p id="herd" aria-hidden="true"></p>
   <p class="cap" id="sub" aria-live="off"></p>
   <!-- The narrator's script. data-at is when each line starts, in seconds. Shown as plain text if motion is off. -->
   <ol id="script">
     <li data-at="0.5">Psst. Want to go on a treasure hunt? In space?</li>
-    <li data-at="4.3">Hold on tight. Here we go!</li>
+    <li data-at="4.3">One of them still works. Can you guess which? Here we go!</li>
     <li data-at="8.6">Rockets drop their empty parts on the way up. This one is heading for the Moon.</li>
     <li data-at="17.7">Boom! The whole Moon rang like a bell, for three hours.</li>
     <li data-at="22.3">Treasure number one: a mirror.</li>
@@ -432,6 +448,7 @@ const TAGS = [
   document.querySelector('.tags').append(el);
   return { el, a, b, pos, set };
 });
+const hunt = document.getElementById('hunt'), days = document.getElementById('days'), herd = document.getElementById('herd');
 const TIMED = [...document.querySelectorAll('[data-a]')].map(el => ({ el, a: +el.dataset.a, b: el.dataset.b ? +el.dataset.b : 1e9 }));
 const fadeEl = document.querySelector('.fade'), bar = document.querySelector('.bar'), skip = document.querySelector('.skip');
 
@@ -592,6 +609,19 @@ function render(t, rt) { // t: scene time (drives the animation) · rt: real sec
   const line = NARR.findLast(n => rt >= n.at), on = line ? span(rt, line.at, line.at + 0.4) * (1 - span(rt, line.end - 0.5, line.end)) : 0; // subtitles
   if (line && sub.textContent !== line.text) sub.textContent = line.text;
   sub.style.opacity = on;
+  // The hunt: the question, then a chip for each treasure as it is named. Each one pops in with a little overshoot.
+  hunt.style.opacity = span(rt, 21.6, 22.2) * (1 - span(rt, 44.2, 44.9));
+  [22.3, 25.6, 28.8].forEach((a, i) => { const k = span(rt, a, a + 0.4), c = hunt.children[i + 1]; c.style.opacity = k; c.style.transform = `scale(${(0.5 + 0.5 * k + 0.3 * Math.sin(Math.PI * k)).toFixed(3)})`; });
+  // Oppy's day counter: crawls to the 90 days she was built for, then races past it to the 5,111 she actually worked
+  const dk = span(rt, 53.2, 53.8) * (1 - span(rt, 59.3, 59.9)); days.style.opacity = dk;
+  if (dk) {
+    const n = Math.round(1 + 89 * span(rt, 53.8, 55.6) + 5021 * span(rt, 56.6, 58.8) ** 2);
+    days.children[0].textContent = 'Day ' + n.toLocaleString('en-GB'); days.children[2].textContent = n <= 90 ? 'The plan: 90 days' : 'Still going!';
+    days.children[1].firstChild.style.transform = `scaleX(${Math.max(n / 5111, 0.02)})`; days.children[1].firstChild.style.background = n <= 90 ? '#fff' : '';
+  }
+  // The tally as elephants: one appears for every six tonnes
+  const hk = span(rt, 69.2, 69.8) * (1 - span(rt, 72.5, 73.1)); herd.style.opacity = hk;
+  if (hk) { const n = Math.round(35 * span(rt, 69.4, 71.6)), h = '🐘'.repeat(n) + '<small>as heavy as 35 elephants</small>'; if (herd.dataset.n != n) { herd.dataset.n = n; herd.innerHTML = h; } }
   // Big type: the running tally of what was left
   let bigText = '', bigK = 0, num = false;
   if (rt >= 67.5 && rt < 73.1) { const n = Math.round(213608 * span(rt, 67.5, 71)); bigText = `${n.toLocaleString('en-GB')} kg<small>left on the Moon and Mars</small>`; bigK = span(rt, 67.5, 68) * (1 - span(rt, 72.5, 73.1)); num = true; big.style.transform = 'translateY(-35vh)'; }
